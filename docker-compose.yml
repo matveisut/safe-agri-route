@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: safe_agri_route_db
+    environment:
+      POSTGRES_USER: safeagri
+      POSTGRES_PASSWORD: safeagripassword
+      POSTGRES_DB: safeagriroute
+    ports:
+      - "5432:5432"
+    volumes:
+      - safe_agri_route_pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: safe_agri_route_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://safeagri:safeagripassword@db:5432/safeagriroute
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+    # Command to run for dev server (it will automatically reload on code changes)
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  safe_agri_route_pgdata:
