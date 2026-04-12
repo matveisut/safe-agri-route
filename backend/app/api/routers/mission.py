@@ -1,11 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+import shapely.wkb
 
 from app.database import get_db
 from app.repositories import field as field_repo, drone as drone_repo, risk_zone as risk_zone_repo
-from app.schemas.mission import PlanMissionRequest, PlanMissionResponse
+from app.schemas.mission import (
+    PlanMissionRequest, PlanMissionResponse,
+    SimulateLossRequest, AddRiskZoneRequest, ReplanResponse,
+)
 from app.services.routing_service import RoutingService
+from app.services.replanner import replan_on_drone_loss, replan_on_new_risk_zone
 
 router = APIRouter(prefix="/mission", tags=["Mission"])
 
@@ -35,9 +39,13 @@ async def plan_mission(request: PlanMissionRequest, db: AsyncSession = Depends(g
     
     # 4. Process routing logic
     # In real world, step size should be dynamic depending on field size
-    routes = RoutingService.plan_mission(field, drones, all_zones, step_deg=0.002)
-    
-    return PlanMissionResponse(routes=routes)
+    result = RoutingService.plan_mission(field, drones, all_zones, step_deg=0.002)
+
+    return PlanMissionResponse(
+        routes=result.routes,
+        reliability_index=result.reliability_index,
+        estimated_coverage_pct=result.estimated_coverage_pct,
+    )
 
 from geoalchemy2.functions import ST_AsGeoJSON
 from sqlalchemy import select
@@ -61,3 +69,98 @@ async def get_risk_zones(db: AsyncSession = Depends(get_db)):
     
     out = [{"id": r.id, "type": r.type, "severity_weight": r.severity_weight, "geojson": r.geojson} for r in rows]
     return {"risk_zones": out}
+
+
+@router.post("/{mission_id}/simulate-loss", response_model=ReplanResponse)
+async def simulate_drone_loss(
+    mission_id: int,
+    drone_id: int = Query(..., description="ID of the drone that was lost"),
+    request: SimulateLossRequest = ...,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Scenario A — drone loss.
+    Redistributes uncovered waypoints of the lost drone among active drones
+    and re-solves TSP for each affected drone.
+    """
+    del mission_id  # path param reserved for future Mission DB lookup
+    field = await field_repo.get(db, request.field_id)
+    if not field:
+        raise HTTPException(status_code=404, detail="Field not found")
+
+    field_polygon = shapely.wkb.loads(bytes(field.geometry.data))
+
+    drones = []
+    for d_id in request.drone_ids:
+        drone = await drone_repo.get(db, d_id)
+        if drone:
+            drones.append(drone)
+    if not drones:
+        raise HTTPException(status_code=400, detail="No valid drones found")
+
+    all_zones = await risk_zone_repo.get_multi(db, limit=1000)
+
+    result = await replan_on_drone_loss(
+        lost_drone_id=drone_id,
+        current_routes=request.current_routes,
+        visited_counts=request.visited_counts,
+        drones=drones,
+        field_polygon=field_polygon,
+        risk_zones=all_zones,
+    )
+
+    if result["status"] == "mission_failed":
+        return ReplanResponse(status="mission_failed", updated_routes=[], new_irm=0.0)
+
+    from app.schemas.mission import DroneRoute
+    updated = [DroneRoute(**r) for r in result["updated_routes"]]
+    return ReplanResponse(
+        status=result["status"],
+        updated_routes=updated,
+        new_irm=result["new_irm"],
+    )
+
+
+@router.post("/{mission_id}/risk-zones", response_model=ReplanResponse)
+async def add_risk_zone_during_mission(
+    mission_id: int,
+    request: AddRiskZoneRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Scenario B — new REB zone detected mid-mission.
+    Re-routes any drone whose remaining path intersects the new zone.
+    """
+    del mission_id  # path param reserved for future Mission DB lookup
+    field = await field_repo.get(db, request.field_id)
+    if not field:
+        raise HTTPException(status_code=404, detail="Field not found")
+
+    field_polygon = shapely.wkb.loads(bytes(field.geometry.data))
+
+    drones = []
+    for d_id in request.drone_ids:
+        drone = await drone_repo.get(db, d_id)
+        if drone:
+            drones.append(drone)
+    if not drones:
+        raise HTTPException(status_code=400, detail="No valid drones found")
+
+    existing_zones = await risk_zone_repo.get_multi(db, limit=1000)
+
+    result = await replan_on_new_risk_zone(
+        new_zone=request.new_zone,
+        current_routes=request.current_routes,
+        visited_counts=request.visited_counts,
+        drones=drones,
+        field_polygon=field_polygon,
+        existing_risk_zones=existing_zones,
+    )
+
+    from app.schemas.mission import DroneRoute
+    updated = [DroneRoute(**r) for r in result["updated_routes"]]
+    return ReplanResponse(
+        status=result["status"],
+        updated_routes=updated,
+        new_irm=result["new_irm"],
+    )
