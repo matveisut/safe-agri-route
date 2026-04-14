@@ -1,9 +1,14 @@
 import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel
 from pydantic import ValidationError
-from app.schemas.mission import PlanMissionResponse
+from app.schemas.mission import DroneRoute, PlanMissionResponse
 
 router = APIRouter(tags=["Telemetry"])
+
+
+class TelemetryStartPayload(BaseModel):
+    routes: list[DroneRoute]
 
 @router.websocket("/ws/telemetry")
 async def telemetry_websocket(websocket: WebSocket):
@@ -19,12 +24,18 @@ async def telemetry_websocket(websocket: WebSocket):
         data = await websocket.receive_json()
         
         try:
+            # Preferred payload from plan endpoint response
             plan = PlanMissionResponse(**data)
+            routes = plan.routes
         except ValidationError:
-            await websocket.send_json({"error": "Invalid route plan format"})
-            return
+            try:
+                # Backward-compatible payload used by current frontend: {"routes": [...]}
+                payload = TelemetryStartPayload(**data)
+                routes = payload.routes
+            except ValidationError:
+                await websocket.send_json({"error": "Invalid route plan format"})
+                return
             
-        routes = plan.routes
         if not routes:
             await websocket.send_json({"message": "Empty routes provided"})
             return
