@@ -47,3 +47,18 @@ class AddRiskZoneRequest(BaseModel):
     new_zone: Dict[str, Any]                # {"geometry": GeoJSON, "severity": float, "zone_type": str}
     current_routes: List[DroneRoute]
     visited_counts: Dict[int, int]
+
+
+# ---------------------------------------------------------------------------
+# MAVLink mission start schemas
+# ---------------------------------------------------------------------------
+
+class StartMissionRequest(BaseModel):
+    """Body for POST /mission/{id}/start"""
+    routes: List[DroneRoute]                # output of /plan — routes to upload
+    altitude_m: float = 30.0               # cruise altitude in metres AGL
+
+class StartMissionResponse(BaseModel):
+    status: str                             # "started" | "partial" | "failed"
+    uploaded: List[int]                     # drone_ids that got mission uploaded
+    started: List[int]                      # drone_ids that armed and launched

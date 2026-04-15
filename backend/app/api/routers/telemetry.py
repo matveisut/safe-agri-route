@@ -3,6 +3,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from pydantic import ValidationError
 from app.schemas.mission import DroneRoute, PlanMissionResponse
+from app.services.mavlink_service import mavlink_service
 
 router = APIRouter(tags=["Telemetry"])
 
@@ -74,3 +75,39 @@ async def telemetry_websocket(websocket: WebSocket):
         print("Telemetry Client disconnected")
     except Exception as e:
         print(f"Error in telemetry websocket: {e}")
+
+
+@router.websocket("/ws/telemetry/{drone_id}")
+async def mavlink_telemetry_websocket(websocket: WebSocket, drone_id: int):
+    """
+    Streams live MAVLink telemetry for a single drone every ~200 ms.
+
+    When SITL is connected the frames contain real GPS/battery data from
+    ArduPilot.  When SITL is unreachable the endpoint streams the last-known
+    cached snapshot with status=LOST so the frontend can react.
+
+    Frame schema
+    ------------
+    {
+        "drone_id": int,
+        "lat":        float,
+        "lng":        float,
+        "alt":        float,   # metres AGL
+        "battery":    int,     # 0-100 %
+        "heading":    int,     # 0-360 degrees
+        "status":     str,     # ACTIVE | LOST | LANDED | RTL
+        "groundspeed": float
+    }
+    """
+    await websocket.accept()
+    try:
+        async for frame in mavlink_service.read_telemetry_loop(drone_id):
+            await websocket.send_json(frame)
+            if frame.get("status") == "LOST":
+                # Notify frontend and close — caller should trigger replanner
+                await websocket.send_json({"event": "drone_lost", "drone_id": drone_id})
+                break
+    except WebSocketDisconnect:
+        pass
+    except Exception as exc:
+        print(f"MAVLink telemetry WS error (drone {drone_id}): {exc}")
