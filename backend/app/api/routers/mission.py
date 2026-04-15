@@ -12,11 +12,17 @@ from app.schemas.mission import (
 from app.services.routing_service import RoutingService
 from app.services.replanner import replan_on_drone_loss, replan_on_new_risk_zone
 from app.services.mavlink_service import mavlink_service
+from app.api.deps import require_operator, require_viewer
+from app.models.user import User
 
 router = APIRouter(prefix="/mission", tags=["Mission"])
 
 @router.post("/plan", response_model=PlanMissionResponse)
-async def plan_mission(request: PlanMissionRequest, db: AsyncSession = Depends(get_db)):
+async def plan_mission(
+    request: PlanMissionRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_operator),
+):
     """
     Plans drone mission. Takes a field, drones, and computes CVRP logic.
     """
@@ -53,7 +59,10 @@ from geoalchemy2.functions import ST_AsGeoJSON
 from sqlalchemy import select
 
 @router.get("/fields")
-async def get_fields(db: AsyncSession = Depends(get_db)):
+async def get_fields(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_viewer),
+):
     # Raw query to grab geometry as GeoJSON string rather than WKB Element
     query = select(field_repo.model.id, field_repo.model.name, ST_AsGeoJSON(field_repo.model.geometry).label("geojson"))
     result = await db.execute(query)
@@ -64,7 +73,10 @@ async def get_fields(db: AsyncSession = Depends(get_db)):
     return {"fields": out}
     
 @router.get("/risk-zones")
-async def get_risk_zones(db: AsyncSession = Depends(get_db)):
+async def get_risk_zones(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_viewer),
+):
     query = select(risk_zone_repo.model.id, risk_zone_repo.model.type, risk_zone_repo.model.severity_weight, ST_AsGeoJSON(risk_zone_repo.model.geometry).label("geojson"))
     result = await db.execute(query)
     rows = result.all()
@@ -77,6 +89,7 @@ async def get_risk_zones(db: AsyncSession = Depends(get_db)):
 async def start_mission(
     mission_id: int,
     request: StartMissionRequest,
+    _: User = Depends(require_operator),
 ):
     """
     Upload planned routes to drones via MAVLink and launch them.
@@ -128,6 +141,7 @@ async def simulate_drone_loss(
     drone_id: int = Query(..., description="ID of the drone that was lost"),
     request: SimulateLossRequest = ...,
     db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_operator),
 ):
     """
     Scenario A — drone loss.
@@ -183,6 +197,7 @@ async def add_risk_zone_during_mission(
     mission_id: int,
     request: AddRiskZoneRequest,
     db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_operator),
 ):
     """
     Scenario B — new REB zone detected mid-mission.

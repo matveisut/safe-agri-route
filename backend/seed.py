@@ -1,4 +1,9 @@
 import asyncio
+from pathlib import Path
+
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).resolve().parent / ".env")
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from geoalchemy2.shape import from_shape
 from shapely.geometry import Polygon
@@ -8,6 +13,8 @@ from app.models.base import Base
 from app.models.field import Field
 from app.models.risk_zone import RiskZone
 from app.models.drone import Drone
+from app.models.user import User
+from app.core.security import hash_password
 
 async def recreate_tables():
     """Drop all tables and create them freshly. We enable PostGIS extension first."""
@@ -83,8 +90,21 @@ async def seed_data():
         )
         session.add(spoofing_zone)
 
+        # Seed users
+        users_data = [
+            {"email": "operator@safegriroute.com", "password": "operator123", "role": "operator"},
+            {"email": "viewer@safegriroute.com",   "password": "viewer123",   "role": "viewer"},
+        ]
+        for u in users_data:
+            session.add(User(
+                email=u["email"],
+                hashed_password=hash_password(u["password"]),
+                role=u["role"],
+                is_active=True,
+            ))
+
         await session.commit()
-        print("Database successfuly seeded with 1 Field, 2 Risk Zones and 3 Drones!")
+        print("Database seeded: 1 Field, 2 Risk Zones, 3 Drones, 2 Users!")
 
 async def main():
     print("Recreating database tables...")

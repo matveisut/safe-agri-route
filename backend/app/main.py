@@ -1,10 +1,16 @@
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Load .env before any app imports so JWT_SECRET etc. are available
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+
 from app.api.routers import mission, telemetry
+from app.api.routers.auth import router as auth_router
 from app.services.mavlink_service import mavlink_service
 
 # Make app-level loggers visible alongside uvicorn output
@@ -37,8 +43,9 @@ app.add_middleware(
 )
 
 # Include Routers
+app.include_router(auth_router)                    # /auth/login, /auth/register
 app.include_router(mission.router, prefix="/api/v1")
-app.include_router(telemetry.router)  # WebSocket maps to root /ws...
+app.include_router(telemetry.router)               # WebSocket /ws/...
 
 
 @app.get("/health")
