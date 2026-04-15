@@ -237,7 +237,12 @@ class MAVLinkService:
         home = waypoints[0] if waypoints else {"lat": 0.0, "lng": 0.0, "alt": 30.0}
 
         def _send_wp(seq: int, wp: Dict) -> bool:
-            """Send one MISSION_ITEM_INT and wait for next REQUEST_INT or final ACK."""
+            """Send one MISSION_ITEM_INT and wait for next REQUEST or final ACK.
+
+            ArduPilot ≥ 4.0 uses MISSION_REQUEST_INT; older builds fall back to
+            the deprecated MISSION_REQUEST.  We accept both so the upload works
+            against any SITL version.
+            """
             conn.mav.mission_item_int_send(
                 conn.target_system,
                 conn.target_component,
@@ -251,11 +256,10 @@ class MAVLinkService:
                 int(wp["lng"] * 1e7),
                 float(wp.get("alt", 30.0)),
             )
-            # For the last item we expect MISSION_ACK, for others MISSION_REQUEST_INT
             resp = conn.recv_match(
-                type=["MISSION_REQUEST_INT", "MISSION_ACK"],
+                type=["MISSION_REQUEST_INT", "MISSION_REQUEST", "MISSION_ACK"],
                 blocking=True,
-                timeout=3.0,
+                timeout=5.0,
             )
             if resp is None:
                 logger.error(
@@ -264,7 +268,7 @@ class MAVLinkService:
                 return False
             if resp.get_type() == "MISSION_ACK":
                 return resp.type == mav.MAV_MISSION_ACCEPTED
-            # MISSION_REQUEST_INT — next item expected; sequence must match seq+1
+            # MISSION_REQUEST_INT or MISSION_REQUEST — next item expected
             return True
 
         # Index 0: home

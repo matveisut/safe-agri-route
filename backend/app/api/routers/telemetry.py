@@ -10,6 +10,7 @@ router = APIRouter(tags=["Telemetry"])
 
 class TelemetryStartPayload(BaseModel):
     routes: list[DroneRoute]
+    irm: float | None = None   # initial IRM forwarded from /plan; echoed back in first frame
 
 @router.websocket("/ws/telemetry")
 async def telemetry_websocket(websocket: WebSocket):
@@ -24,15 +25,18 @@ async def telemetry_websocket(websocket: WebSocket):
         # Wait for client to send the route plan
         data = await websocket.receive_json()
         
+        initial_irm: float | None = None
         try:
             # Preferred payload from plan endpoint response
             plan = PlanMissionResponse(**data)
             routes = plan.routes
+            initial_irm = plan.reliability_index
         except ValidationError:
             try:
-                # Backward-compatible payload used by current frontend: {"routes": [...]}
+                # Backward-compatible payload: {"routes": [...], "irm": 0.9}
                 payload = TelemetryStartPayload(**data)
                 routes = payload.routes
+                initial_irm = payload.irm
             except ValidationError:
                 await websocket.send_json({"error": "Invalid route plan format"})
                 return
@@ -46,7 +50,7 @@ async def telemetry_websocket(websocket: WebSocket):
         
         for step_idx in range(max_points):
             payload = []
-            
+
             for dr in routes:
                 if step_idx < len(dr.route):
                     pt = dr.route[step_idx]
@@ -65,9 +69,15 @@ async def telemetry_websocket(websocket: WebSocket):
                         "lng": pt.lng,
                         "status": "idle"
                     })
-            
-            await websocket.send_json({"telemetry": payload})
-            await asyncio.sleep(0.1) # Send updates every 100ms for fast animation
+
+            # irm_update is non-null only in the first frame so the frontend can
+            # initialise its IRM display without a separate REST call.
+            frame: dict = {"telemetry": payload}
+            if step_idx == 0 and initial_irm is not None:
+                frame["irm_update"] = initial_irm
+
+            await websocket.send_json(frame)
+            await asyncio.sleep(0.1)  # 100 ms per frame → smooth animation
             
         await websocket.send_json({"message": "Mission Completed"})
 

@@ -84,14 +84,22 @@ def _plan_tsp_for_drone(
 
 
 def _greedy_nn(points: List[Point]) -> List[RoutePoint]:
-    """O(n²) nearest-neighbour tour starting at points[0]."""
+    """
+    O(n²) nearest-neighbour tour starting at points[0].
+
+    Uses plain squared-Euclidean distance (dx²+dy²) instead of Shapely
+    Point.distance() to avoid the per-call Python→C overhead.  Monotonic
+    ordering is preserved so the NN choice is identical; only the absolute
+    magnitude differs (no sqrt needed for comparisons).
+    """
     if not points:
         return []
     remaining = list(points)
     current = remaining.pop(0)
     tour = [RoutePoint(lat=current.y, lng=current.x)]
     while remaining:
-        nearest = min(remaining, key=lambda p: RoutingService.calculate_distance(current, p))
+        cx, cy = current.x, current.y
+        nearest = min(remaining, key=lambda p: (p.x - cx) ** 2 + (p.y - cy) ** 2)
         remaining.remove(nearest)
         tour.append(RoutePoint(lat=nearest.y, lng=nearest.x))
         current = nearest

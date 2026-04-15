@@ -22,6 +22,7 @@ class MissionPlanResult:
     routes: List[DroneRoute]
     reliability_index: float
     estimated_coverage_pct: float
+    risk_grid_preview: List[dict] = None  # [{lat, lng, risk}] every-3rd grid point
 
 
 class RoutingService:
@@ -377,6 +378,14 @@ class RoutingService:
 
         total_field_points = len(grid_points_latlon)  # includes cells inside risk zones
 
+        # Build sparse risk preview (every 3rd grid point) for the frontend heat-map.
+        # Kept small to avoid bloating the /plan JSON response.
+        risk_grid_preview = [
+            {"lat": lat, "lng": lng, "risk": float(risk_grid[i, j])}
+            for idx, ((lat, lng), (i, j)) in enumerate(zip(grid_points_latlon, grid_indices))
+            if idx % 3 == 0
+        ]
+
         # --- 3. Build weighted_points for Voronoi (safe points only) ---
         # Points directly inside any risk zone are excluded from drone routes.
         weighted_points: List[Tuple[Point, float]] = []
@@ -450,4 +459,5 @@ class RoutingService:
             routes=all_routes,
             reliability_index=float(max(0.0, min(1.0, reliability_index))),
             estimated_coverage_pct=float(estimated_coverage_pct),
+            risk_grid_preview=risk_grid_preview,
         )

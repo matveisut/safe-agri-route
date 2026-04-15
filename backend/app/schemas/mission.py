@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 class PlanMissionRequest(BaseModel):
     field_id: int
@@ -13,14 +13,35 @@ class DroneRoute(BaseModel):
     drone_id: int
     route: List[RoutePoint]
 
+class RiskGridPoint(BaseModel):
+    lat: float
+    lng: float
+    risk: float
+
 class PlanMissionResponse(BaseModel):
     routes: List[DroneRoute]
     reliability_index: float
     estimated_coverage_pct: float
+    risk_grid_preview: List[RiskGridPoint] = []
 
 class GridParameters(BaseModel):
     # Base grid step sizes in degrees
     step_deg: float = 0.0002
+
+# ---------------------------------------------------------------------------
+# Field / RiskZone creation schemas
+# ---------------------------------------------------------------------------
+
+class CreateFieldRequest(BaseModel):
+    """Body for POST /mission/fields — draw a new field polygon on the map."""
+    name: str
+    geojson: str          # GeoJSON Polygon geometry string
+
+class CreateRiskZoneRequest(BaseModel):
+    """Body for POST /mission/risk-zones — draw a new REB zone on the map."""
+    zone_type: str        # "jammer" | "restricted"
+    severity_weight: float  # 0.1 – 1.0
+    geojson: str          # GeoJSON Polygon geometry string
 
 
 # ---------------------------------------------------------------------------

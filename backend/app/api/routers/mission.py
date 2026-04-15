@@ -5,9 +5,10 @@ import shapely.wkb
 from app.database import get_db
 from app.repositories import field as field_repo, drone as drone_repo, risk_zone as risk_zone_repo
 from app.schemas.mission import (
-    PlanMissionRequest, PlanMissionResponse,
+    PlanMissionRequest, PlanMissionResponse, RiskGridPoint,
     SimulateLossRequest, AddRiskZoneRequest, ReplanResponse,
     StartMissionRequest, StartMissionResponse,
+    CreateFieldRequest, CreateRiskZoneRequest,
 )
 from app.services.routing_service import RoutingService
 from app.services.replanner import replan_on_drone_loss, replan_on_new_risk_zone
@@ -49,10 +50,13 @@ async def plan_mission(
     # In real world, step size should be dynamic depending on field size
     result = RoutingService.plan_mission(field, drones, all_zones, step_deg=0.002)
 
+    preview = [RiskGridPoint(**p) for p in (result.risk_grid_preview or [])]
+
     return PlanMissionResponse(
         routes=result.routes,
         reliability_index=result.reliability_index,
         estimated_coverage_pct=result.estimated_coverage_pct,
+        risk_grid_preview=preview,
     )
 
 from geoalchemy2.functions import ST_AsGeoJSON
@@ -83,6 +87,66 @@ async def get_risk_zones(
     
     out = [{"id": r.id, "type": r.type, "severity_weight": r.severity_weight, "geojson": r.geojson} for r in rows]
     return {"risk_zones": out}
+
+
+@router.post("/fields")
+async def create_field(
+    request: CreateFieldRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_operator),
+):
+    """
+    Create a new agricultural field from a GeoJSON Polygon drawn on the map.
+    The geometry is stored in PostGIS with SRID 4326.
+    """
+    import json
+    from shapely.geometry import shape
+    from geoalchemy2 import WKTElement
+
+    try:
+        geom = shape(json.loads(request.geojson))
+        if geom.geom_type != "Polygon":
+            raise HTTPException(status_code=400, detail="Geometry must be a Polygon")
+        wkt_el = WKTElement(geom.wkt, srid=4326)
+    except (ValueError, KeyError) as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid GeoJSON: {exc}")
+
+    new_field = await field_repo.create(db, obj_in={"name": request.name, "geometry": wkt_el})
+    return {"id": new_field.id, "name": new_field.name}
+
+
+@router.post("/risk-zones")
+async def create_risk_zone(
+    request: CreateRiskZoneRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_operator),
+):
+    """
+    Create a new REB risk zone from a GeoJSON Polygon drawn on the map.
+    Immediately available to the routing engine on the next /plan call.
+    """
+    import json
+    from shapely.geometry import shape
+    from geoalchemy2 import WKTElement
+
+    try:
+        geom = shape(json.loads(request.geojson))
+        if geom.geom_type != "Polygon":
+            raise HTTPException(status_code=400, detail="Geometry must be a Polygon")
+        wkt_el = WKTElement(geom.wkt, srid=4326)
+    except (ValueError, KeyError) as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid GeoJSON: {exc}")
+
+    new_zone = await risk_zone_repo.create(db, obj_in={
+        "type": request.zone_type,
+        "severity_weight": request.severity_weight,
+        "geometry": wkt_el,
+    })
+    return {
+        "id": new_zone.id,
+        "type": new_zone.type,
+        "severity_weight": new_zone.severity_weight,
+    }
 
 
 @router.post("/{mission_id}/start", response_model=StartMissionResponse)
