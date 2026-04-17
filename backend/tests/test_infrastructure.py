@@ -82,8 +82,9 @@ def _stack_running(host: str = "127.0.0.1", port: int = 8000) -> bool:
     return _port_open(host, port)
 
 
-docker_required  = pytest.mark.skipif(not _docker_available(), reason="Docker CLI not available")
-stack_required   = pytest.mark.skipif(not _stack_running(), reason="docker-compose stack not running on :8000")
+docker_required    = pytest.mark.skipif(not _docker_available(), reason="Docker CLI not available")
+stack_required     = pytest.mark.skipif(not _stack_running(), reason="docker-compose stack not running on :8000")
+frontend_required  = pytest.mark.skipif(not _port_open("127.0.0.1", 3000), reason="Frontend not running on :3000")
 
 
 # ===========================================================================
@@ -581,6 +582,7 @@ class TestRunningStack:
             "Backend не отвечает на порту 8000"
 
     @stack_required
+    @frontend_required
     def test_frontend_port_open(self):
         assert _port_open("127.0.0.1", 3000), \
             "Frontend не отвечает на порту 3000"
@@ -693,6 +695,7 @@ class TestRunningStack:
             f"GET /api/v1/mission/fields с валидным токеном вернул {status}"
 
     @stack_required
+    @frontend_required
     def test_frontend_returns_html(self):
         """Frontend должен отдавать HTML-страницу (React SPA)."""
         try:

@@ -1,89 +1,103 @@
 import { useEffect, useRef, useState } from 'react';
-import { useMissionStore, DroneRoute } from '../store/useMissionStore';
+import { useMissionStore } from '../store/useMissionStore';
 
 export function useTelemetry() {
   const wsRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  
-  const { plannedRoutes, updateTelemetry, telemetry } = useMissionStore();
+
+  const {
+    updateTelemetry,
+    updateMissionIRM,
+    setMissionActive,
+    setDroneStatus,
+    resetDroneStatuses,
+  } = useMissionStore();
 
   useEffect(() => {
-    // Cleanup on unmount
     return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
+      wsRef.current?.close();
     };
   }, []);
 
-  const startSimulation = () => {
-    if (!plannedRoutes || plannedRoutes.length === 0) {
-      alert("No planned routes available. Please generate a route first.");
+  /**
+   * Open the telemetry WebSocket and start the flight simulation.
+   *
+   * @param irm  Optional IRM value to relay to the backend so the first frame
+   *             can carry an `irm_update` field — satisfying the requirement
+   *             that IRM updates propagate through WebSocket frames.
+   */
+  const startSimulation = (irm?: number) => {
+    const routes = useMissionStore.getState().plannedRoutes;
+
+    if (!routes || routes.length === 0) {
+      alert('No planned routes available. Please generate a route first.');
       return;
     }
 
-    if (wsRef.current) {
-      wsRef.current.close();
-    }
+    wsRef.current?.close();
 
-    // Connect to WebSocket using native browser API
-    // Ensure you use the right host. Assuming backend is on 8000
-    const wsUrl = `ws://localhost:8000/ws/telemetry`;
-    const ws = new WebSocket(wsUrl);
+    const ws = new WebSocket('ws://localhost:8000/ws/telemetry');
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log("Telemetry WebSocket connected.");
+      console.log('Telemetry WebSocket connected.');
       setIsConnected(true);
-      
-      // Send the current routes to start simulating
-      ws.send(JSON.stringify({ routes: plannedRoutes }));
+      setMissionActive(true);
+
+      // Mark all mission drones as active at start
+      routes.forEach((r) => setDroneStatus(r.drone_id, 'active'));
+
+      // Include irm so the server echoes it back in the first frame as irm_update
+      const payload: Record<string, unknown> = { routes };
+      if (irm !== undefined) payload.irm = irm;
+      ws.send(JSON.stringify(payload));
     };
 
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        
+
+        // irm_update arrives in the first frame (and after replanning restarts)
+        if (data.irm_update != null) {
+          updateMissionIRM(data.irm_update);
+        }
+
         if (data.message) {
-          console.log("Server message:", data.message);
-          if (data.message === "Mission Completed") {
+          console.log('Server message:', data.message);
+          if (data.message === 'Mission Completed') {
             setIsConnected(false);
+            setMissionActive(false);
           }
           return;
         }
 
         if (data.telemetry) {
-          // data.telemetry is an array of { drone_id, lat, lng, status }
-          data.telemetry.forEach((t: any) => {
+          data.telemetry.forEach((t: { drone_id: number; lat: number; lng: number; status: string }) => {
             updateTelemetry(t.drone_id, { lat: t.lat, lng: t.lng });
           });
         }
       } catch (err) {
-        console.error("Error parsing telemetry data:", err);
+        console.error('Error parsing telemetry data:', err);
       }
     };
 
     ws.onclose = () => {
-      console.log("Telemetry WebSocket closed.");
+      console.log('Telemetry WebSocket closed.');
       setIsConnected(false);
     };
 
     ws.onerror = (err) => {
-      console.error("Telemetry WebSocket error:", err);
+      console.error('Telemetry WebSocket error:', err);
       setIsConnected(false);
     };
   };
 
   const stopSimulation = () => {
-    if (wsRef.current) {
-      wsRef.current.close();
-      setIsConnected(false);
-    }
+    wsRef.current?.close();
+    setIsConnected(false);
+    setMissionActive(false);
+    resetDroneStatuses();
   };
 
-  return {
-    startSimulation,
-    stopSimulation,
-    isConnected
-  };
+  return { startSimulation, stopSimulation, isConnected };
 }

@@ -1,65 +1,285 @@
-# Архитектура Проекта (SafeAgriRoute)
+# Архитектура проекта SafeAgriRoute
 
-В этом документе детально разобрана слоистая архитектура проекта для понимания принципов работы будущими разработчиками или инженерами поддержки.
-
-## 1. Концептуальная Бэкенд-Модель (Backend)
-Фреймворк: **FastAPI**. База: **PostgreSQL + PostGIS**.
-
-### 1.1 Слой Данных (Entity/Models)
-В `/backend/app/models/` лежат SQLAlchemy-модели.
-- `Field` и `RiskZone` используют тип `Geometry('POLYGON', srid=4326)` из библиотеки `GeoAlchemy2`. Это позволяет сохранять векторные карты прямо в БД, а также искать пересечения полигонов встроенными пространственными функциями (хотя в нашем MVP пересечения проверяются в памяти).
-- `BaseRepository` реализует CRUD-операции на базе асинхронных сессий `AsyncSession`, абстрагируя доступ к базе от роутеров контроллеров.
-
-### 1.2 Математическое Ядро: `RoutingService`
-Суть проекта лежит в файле `/backend/app/services/routing_service.py`.
-
-**Пайплайн планирования миссии `plan_mission`:**
-1. **Grid Generation (Решётка)**:
-   - Анализирует полигон целевого поля.
-   - С шагом в `0.0002` градуса рассыпает массу целевых `Point` (Shapely).
-   - `[ВАЖНО]`: Точки, физически попадающие в периметр любой `RiskZone`, удаляются из пула. Таким образом дроны даже не пытаются "нанести визит" на заглушенную территорию.
-2. **K-Means Clustering (Умное распределение роя)**:
-   - Точки поля подаются в кастомный алгоритм K-средних (разработан с нуля для избежания лишних ML-зависимостей).
-   - Точки географически разделяются на X непересекающихся сегментов (где X - количество выбранных дронов).
-   - Сегменты распределяются исходя из батареи: дрону с максимальной батареей достается кластер с наибольшим числом точек.
-3. **Graph Building (Граф весов)**:
-   - Внутри каждого кластера строится полный граф на базе `NetworkX`. Базовый вес ребра — это евклидово расстояние.
-   - `[PENALTY-СИСТЕМА]`: Если прямая между точкой A и точкой B пересекает опасную `RiskZone`, алгоритм искусственно увеличивает расстояние этого ребра на `(severity_weight * 500)`. Это делает полет "насквозь" математически абсурдным, заставляя алгоритм прокладывать маршруты в обход.
-4. **Solve CVRP (Задача маршрутизации транспорта)**:
-   - Скармливаем `distance_matrix` в мощный движок графов `Google OR-Tools`. Выбираем первую эвристику: `PATH_CHEAPEST_ARC`.
-   - В итоге получаем массив `RoutePoint` — точный путь, по которому должен лететь дрон.
-
-### 1.3 Слой WebSockets (Телеметрия)
-Находится в `/backend/app/api/routers/telemetry.py`.
-- Принимает по TCP WebSocket-каналу сгенерированный "План полета".
-- Начинает асинхронный `while` по фреймам (индексам маршрута). Каждые `0.1` сек отправляет координаты позиций дронов для создания иллюзии "Live Movement".
+Детальное описание слоистой архитектуры для разработчиков и инженеров поддержки.
 
 ---
 
-## 2. Архитектура Фронтенда (React/Vite)
-Фронтенд спроектирован по принципу Feature-Sliced Design (частично), с изолированными блоками.
+## Обзор системы
 
-### 2.1 Глобальный Стейт (Zustand)
-Логика живет в `src/store/useMissionStore.ts`.
-- `selectedFieldId`, `selectedDroneIds` — параметры планируемого вылета.
-- `plannedRoutes` — хранит векторные линии.
-- `telemetry` — `Record<number, Coordinates>`, хранит Live-точку каждого дрона. Данные тут обновляются ~10 раз в секунду. Zustand невероятно быстр и не вызывает лишний ререндер ненужных узлов.
-
-### 2.2 Компонент Карты (`MapArea.tsx`)
-Использует библиотеку `react-leaflet`.
-- В `useEffect` при инициализации кидает 2 GET-запроса на бэкенд для загрузки Полей и Зон Риска.
-- Бэкенд возвращает геометрию через `ST_AsGeoJSON()`. Frontend парсит этот `geojson`, свапает координаты WGS84 `[lng, lat]` в Leaflet-стандарт `[lat, lng]`.
-- Картографические слои реактивны: как только Zustand-стейт `telemetry` мутирует координаты дрона, компонент `CircleMarker` плавно смещается.
-- Линии марштрута красятся через математический модульный остаток `drone_id % массив_кодов_цветов`.
-
-### 2.3 Панель Оператора (`MissionPanel.tsx`)
-- Интерфейс управления.
-- Реализует интеграцию с бэкендом (через готовый инстанс Axios в `services/api.ts`).
-- Запускает процесс сокета вызывая метод `startSimulation()` из хука `hooks/useTelemetry.ts`.
+```
+┌─────────────────────────────────────────────────────────┐
+│                     Frontend (React)                     │
+│  MissionPanel  ──►  POST /mission/plan                  │
+│  MapArea       ◄──  GET  /fields, /risk-zones           │
+│  useTelemetry  ◄──  WS   /ws/telemetry/{drone_id}       │
+└───────────────────────────┬─────────────────────────────┘
+                            │ HTTP / WebSocket
+                            ▼
+┌─────────────────────────────────────────────────────────┐
+│                    Backend (FastAPI)                      │
+│                                                          │
+│  /auth/*          JWT auth (login / register)           │
+│  /api/v1/mission  Mission planning & replanning          │
+│  /ws/telemetry    MAVLink telemetry stream               │
+│                                                          │
+│  ┌──────────────┐  ┌────────────────┐  ┌─────────────┐  │
+│  │RoutingService│  │  RiskMapService │  │  Replanner  │  │
+│  └──────┬───────┘  └────────────────┘  └──────┬──────┘  │
+│         │                                      │         │
+│  ┌──────▼──────────────────────────────────────▼──────┐  │
+│  │              MAVLinkService (pymavlink)             │  │
+│  └──────────────────────────┬──────────────────────── ┘  │
+└─────────────────────────────┼───────────────────────────┘
+                              │ TCP (MAVLink 2.0)
+                              ▼
+               ┌──────────────────────────┐
+               │   ArduPilot SITL / Drone  │
+               │   tcp:127.0.0.1:5760      │
+               └──────────────────────────┘
+```
 
 ---
 
-## 3. Векторы Будущего Развития проекта (Для будущих разработчиков)
-1. Настроить Docker для запуска Production-бандла фронтенда (`nginx`), а не только dev-сервера.
-2. Перевести `Euclidean distance` в функции `RoutingService.calculate_distance()` на `Haversine distance` для учета кривизны Земли (актуально только для громадных полей свыше 10 км).
-3. Добавить в базу данных скорость ветра и внедрить этот параметр в множитель `penalty` для графа.
+## 1. Бэкенд
+
+Фреймворк: **FastAPI**. База данных: **PostgreSQL 15 + PostGIS 3.3**.
+
+### 1.1 Слой данных (Models & Repositories)
+
+Файлы: `backend/app/models/`, `backend/app/repositories/`
+
+**Модели SQLAlchemy:**
+
+| Модель | Ключевые поля | Особенности |
+|---|---|---|
+| `Field` | `name`, `geometry` | `Geometry('POLYGON', srid=4326)` через GeoAlchemy2 |
+| `RiskZone` | `type`, `geometry`, `severity_weight` | `Geometry('POLYGON', srid=4326)` |
+| `Drone` | `name`, `battery_capacity`, `max_speed`, `status` | |
+| `User` | `email`, `hashed_password`, `role`, `is_active` | `role`: `"operator"` или `"viewer"` |
+
+`BaseRepository` — дженерик-класс с полным CRUD поверх `AsyncSession`. Все репозитории наследуют его и добавляют доменные запросы (например, `UserRepository.get_by_email`).
+
+Геометрия возвращается через `ST_AsGeoJSON()` — бэкенд отдаёт GeoJSON-строки, фронтенд их парсит и свапает координаты `[lng, lat] → [lat, lng]` для Leaflet.
+
+---
+
+### 1.2 Аутентификация (JWT)
+
+Файлы: `backend/app/core/security.py`, `backend/app/api/deps.py`, `backend/app/api/routers/auth.py`
+
+**Схема:** OAuth2 Password Flow + JWT Bearer.
+
+- Пароли хешируются `bcrypt` (прямой вызов `bcrypt.hashpw/checkpw`, без passlib — несовместима с bcrypt 5.x).
+- Токены подписываются через `python-jose` (HS256, срок жизни 8 часов, настраивается через `.env`).
+- Конфигурация: `JWT_SECRET`, `JWT_ALGORITHM`, `JWT_EXPIRE_HOURS` в файле `backend/.env`.
+
+**Dependency-иерархия:**
+
+```
+oauth2_scheme (Bearer token)
+    └── get_current_user()    → проверяет токен, достаёт User из БД → 401 если невалиден
+            ├── require_viewer  → alias, любая активная роль
+            └── require_operator → 403 если role != "operator"
+```
+
+**Матрица доступа:**
+
+| Эндпоинт | Минимальная роль |
+|---|---|
+| `GET /fields`, `GET /risk-zones` | viewer |
+| `POST /plan`, `POST /start` | operator |
+| `POST /simulate-loss`, `POST /risk-zones` | operator |
+
+---
+
+### 1.3 Математическое ядро: RoutingService
+
+Файл: `backend/app/services/routing_service.py`
+
+Пайплайн `plan_mission()`:
+
+#### Шаг 1: Построение карты рисков
+
+Вызывает `build_risk_map()` из `risk_map.py`:
+- Создаёт дискретную numpy-сетку с шагом `0.0002°` (~22 м) над bbox поля.
+- Для каждой ячейки вычисляет риск:
+  - **jammer-зоны**: линейное затухание от границы зоны в радиусе `0.005°` (~500 м), умноженное на `severity`.
+  - **restricted-зоны**: `severity` внутри периметра, 0 снаружи.
+  - `R = min(1.0, r_jammer + r_zone)`, нормализация на [0, 1].
+- Точки внутри зон РЭБ исключаются из пула waypoints.
+
+#### Шаг 2: Risk-Weighted Voronoi (замена K-Means)
+
+Взвешенный алгоритм Ллойда (до 50 итераций):
+- Каждая точка получает вес: `w = 1 / (1 - risk + ε)`
+- Инициализация N центроидов равномерно внутри поля.
+- На каждой итерации: назначение точек ближайшему центроиду → сдвиг центроида во взвешенный центр своей зоны.
+- **Итог:** опасные территории получают более высокий вес — центроиды уходят от зон РЭБ, деля поле с учётом угроз.
+
+Назначение дронов на зоны — жадный алгоритм:
+- `zone_load = Σ weight` всех точек зоны.
+- Дроны сортируются по `battery_capacity × max_speed` (суммарный ресурс).
+- Самый мощный дрон → самая тяжёлая зона.
+
+Добавляются метрики:
+- **`reliability_index` (IRM)**: `1 − mean(risk всех waypoints маршрута)` ∈ [0, 1].
+- **`estimated_coverage_pct`**: `(достижимые точки / все точки поля) × 100`.
+
+#### Шаг 3: Построение взвешенного графа
+
+Для каждого кластера строится полный граф (`NetworkX`):
+- Базовый вес ребра — евклидово расстояние.
+- **Penalty-система**: если ребро A→B пересекает RiskZone, его вес увеличивается на `severity_weight × 500`. Полёт «насквозь» становится математически невыгодным.
+
+#### Шаг 4: Решение CVRP
+
+Матрица расстояний подаётся в **Google OR-Tools** (эвристика `PATH_CHEAPEST_ARC`).  
+Результат: массив `RoutePoint` — точный маршрут каждого дрона.
+
+---
+
+### 1.4 Динамическое перепланирование
+
+Файл: `backend/app/services/replanner.py`
+
+**Сценарий A — потеря дрона** (`replan_on_drone_loss`):
+1. Определяет непосещённые waypoints потерянного дрона.
+2. Вычисляет `residual_capacity` активных дронов: `battery_capacity × max_speed`.
+3. Распределяет waypoints пропорционально весам, приоритизируя географически близкие точки.
+4. Пересчитывает TSP для затронутых дронов через жадный NN-алгоритм (O(n²), <2 мс для n=67).
+5. Вычисляет новый IRM.
+
+**Сценарий B — новая зона РЭБ** (`replan_on_new_risk_zone`):
+1. Инкрементально добавляет новую зону в карту рисков.
+2. Проверяет пересечение оставшихся сегментов каждого дрона с зоной (`LineString.intersects`).
+3. Для затронутых дронов пересчитывает TSP с обновлёнными весами рёбер.
+
+CPU-интенсивные операции выполняются в `asyncio.run_in_executor` — event loop не блокируется. Целевое время выполнения ≤ 500 мс для 4 дронов и 200 waypoints.
+
+---
+
+### 1.5 MAVLink-интеграция
+
+Файл: `backend/app/services/mavlink_service.py`
+
+Синглтон `mavlink_service` инициализируется при старте FastAPI (`lifespan` context manager) и подключается к дронам из переменной `SITL_HOSTS`.
+
+**Конфигурация:**
+```
+SITL_HOSTS=tcp:127.0.0.1:5760,tcp:127.0.0.1:5770,...
+```
+По умолчанию: `tcp:127.0.0.1:5760` (один дрон, SITL без MAVProxy).
+
+**Ключевые методы:**
+
+| Метод | Описание |
+|---|---|
+| `connect_all()` | Подключается ко всем хостам при старте; запускает фоновый reconnect loop (каждые 10 сек) |
+| `upload_mission(drone_id, waypoints)` | Загружает маршрут через `MISSION_ITEM_INT` протокол |
+| `start_mission(drone_id)` | GUIDED → ARM → TAKEOFF 30м → AUTO |
+| `update_mission(drone_id, waypoints)` | `MISSION_CLEAR_ALL` → upload → `MISSION_START` (для replanner) |
+| `read_telemetry_loop(drone_id)` | Async-генератор, читает `GLOBAL_POSITION_INT`, `BATTERY_STATUS`, `HEARTBEAT`, `VFR_HUD` каждые 200 мс |
+| `simulate_drone_loss(drone_id)` | Помечает дрон `LOST` без остановки SITL (demo) |
+
+Все blocking-вызовы pymavlink выполняются в `run_in_executor`. Перед созданием подключения делается быстрый TCP socket check (1 сек таймаут) — pymavlink не вызывается если порт закрыт, что исключает шумные сообщения `Connection refused sleeping`.
+
+При потере heartbeat (>5 сек) дрон помечается `LOST`, телеметрия-генератор останавливается — вызывающий код может автоматически запустить replanner.
+
+---
+
+### 1.6 WebSocket телеметрия
+
+Файл: `backend/app/api/routers/telemetry.py`
+
+| Эндпоинт | Описание |
+|---|---|
+| `WS /ws/telemetry` | Симуляция: принимает planned routes, шагает по точкам каждые 100 мс |
+| `WS /ws/telemetry/{drone_id}` | Реальная MAVLink телеметрия через `read_telemetry_loop()`, 200 мс |
+
+При `status=LOST` WebSocket отправляет `{"event": "drone_lost", "drone_id": N}` и закрывает соединение — сигнал для фронтенда запустить replanner.
+
+---
+
+## 2. Фронтенд (React/Vite)
+
+### 2.1 Глобальный стейт (Zustand)
+
+Файл: `frontend/src/store/useMissionStore.ts`
+
+| Поле | Тип | Назначение |
+|---|---|---|
+| `selectedFieldId` | `number \| null` | Выбранное поле |
+| `selectedDroneIds` | `number[]` | Выбранные дроны |
+| `plannedRoutes` | `DroneRoute[]` | Результат `/plan` — векторные линии маршрутов |
+| `telemetry` | `Record<number, Coordinates>` | Live-позиция каждого дрона, обновляется ~5 раз/сек |
+
+Zustand обновляет только подписанные срезы стора — `CircleMarker` перерисовывается только при изменении своих координат.
+
+### 2.2 Компонент карты (`MapArea.tsx`)
+
+- При инициализации загружает поля и зоны риска (2 GET-запроса).
+- Рендерит GeoJSON-полигоны полей и зон через React-Leaflet.
+- Маршруты рисуются `Polyline`, цвет по `drone_id % colorPalette`.
+- Маркер дрона — `CircleMarker`, реагирует на мутации `telemetry[drone_id]`.
+
+### 2.3 Панель оператора (`MissionPanel.tsx`)
+
+- Выбор поля и дронов → `POST /mission/plan` → `setPlannedRoutes`.
+- `startSimulation()` из `useTelemetry.ts` → открывает WebSocket → обновляет `telemetry` в стейте.
+
+---
+
+## 3. Структура проекта
+
+```
+safe-agri-route/
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── deps.py              # get_current_user, require_operator, require_viewer
+│   │   │   └── routers/
+│   │   │       ├── auth.py          # POST /auth/login, /auth/register
+│   │   │       ├── mission.py       # /mission/* (plan, start, simulate-loss, risk-zones)
+│   │   │       └── telemetry.py     # WS /ws/telemetry, /ws/telemetry/{id}
+│   │   ├── core/
+│   │   │   └── security.py          # hash_password, verify_password, JWT encode/decode
+│   │   ├── models/                  # SQLAlchemy: Field, RiskZone, Drone, User
+│   │   ├── repositories/            # BaseRepository + доменные: field, risk_zone, drone, user
+│   │   ├── schemas/
+│   │   │   └── mission.py           # Pydantic: PlanMissionRequest/Response, ReplanResponse, ...
+│   │   ├── services/
+│   │   │   ├── routing_service.py   # Voronoi + graph + OR-Tools CVRP
+│   │   │   ├── risk_map.py          # Дискретная карта рисков (numpy)
+│   │   │   ├── replanner.py         # Сценарии A (потеря дрона) и B (новая зона)
+│   │   │   └── mavlink_service.py   # MAVLink: upload/start/update mission, telemetry loop
+│   │   ├── database.py              # AsyncEngine, AsyncSessionLocal, get_db()
+│   │   └── main.py                  # FastAPI app, lifespan (MAVLink init), CORS
+│   ├── tests/
+│   │   ├── test_routing.py
+│   │   ├── test_risk_map.py
+│   │   └── test_replanner.py
+│   ├── seed.py                      # Демо-данные + тестовые пользователи
+│   ├── .env                         # JWT_SECRET, JWT_ALGORITHM, JWT_EXPIRE_HOURS
+│   └── requirements.txt
+├── frontend/
+│   └── src/
+│       ├── features/
+│       │   ├── MapDashboard/MapArea.tsx
+│       │   └── MissionControl/MissionPanel.tsx
+│       ├── hooks/useTelemetry.ts
+│       ├── services/api.ts          # Axios instance
+│       └── store/useMissionStore.ts
+├── docker-compose.yml
+├── ARCHITECTURE.md
+└── README.md
+```
+
+---
+
+## 4. Векторы развития
+
+1. **Production Docker**: настроить Nginx для раздачи собранного фронтенда вместо Vite dev-сервера.
+2. **Haversine distance**: заменить евклидово расстояние в `calculate_distance()` на формулу Хаверсина — актуально для полей > 10 км.
+3. **Ветровая коррекция**: добавить в БД скорость ветра и включить её как множитель в penalty-систему графа.
+4. **Mission DB**: создать таблицу `Mission` для персистентного хранения запущенных миссий и привязки heartbeat-истории.
+5. **Multi-tenant**: изолировать данные по организациям (fields, drones принадлежат tenant).

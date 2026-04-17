@@ -1,0 +1,122 @@
+# docker-compose.sitl.yml
+# Оверлей для добавления 4 SITL-инстансов ArduCopter к основному стеку.
+#
+# Использование:
+#   docker-compose -f docker-compose.yml -f docker-compose.sitl.yml up --build
+#
+# ВАЖНО ДЛЯ WINDOWS:
+#   Docker Desktop должен работать с WSL2-бэкендом
+#   (Settings → General → "Use the WSL 2 based engine" = ON).
+#   Без этого контейнеры с ArduPilot нестабильны.
+#   Рекомендуемый альтернативный вариант — start_sitl_wsl.sh (запуск в WSL2 напрямую).
+
+version: '3.8'
+
+services:
+  # ─── SITL инстанс 0 ─── порт 14550 ───────────────────────────────────────
+  sitl-1:
+    build:
+      context: .
+      dockerfile: Dockerfile.sitl
+    container_name: safe_agri_sitl_0
+    environment:
+      - INSTANCE=0
+      - PORT=14550
+      - LOCATION=45.0448,41.9734,0,0
+    ports:
+      - "14550:14550"
+    networks:
+      - safagri_net
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 14550 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  # ─── SITL инстанс 1 ─── порт 14560 ───────────────────────────────────────
+  sitl-2:
+    build:
+      context: .
+      dockerfile: Dockerfile.sitl
+    container_name: safe_agri_sitl_1
+    environment:
+      - INSTANCE=1
+      - PORT=14560
+      - LOCATION=45.0448,41.9734,0,0
+    ports:
+      - "14560:14560"
+    networks:
+      - safagri_net
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 14560 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  # ─── SITL инстанс 2 ─── порт 14570 ───────────────────────────────────────
+  sitl-3:
+    build:
+      context: .
+      dockerfile: Dockerfile.sitl
+    container_name: safe_agri_sitl_2
+    environment:
+      - INSTANCE=2
+      - PORT=14570
+      - LOCATION=45.0448,41.9734,0,0
+    ports:
+      - "14570:14570"
+    networks:
+      - safagri_net
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 14570 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  # ─── SITL инстанс 3 ─── порт 14580 ───────────────────────────────────────
+  sitl-4:
+    build:
+      context: .
+      dockerfile: Dockerfile.sitl
+    container_name: safe_agri_sitl_3
+    environment:
+      - INSTANCE=3
+      - PORT=14580
+      - LOCATION=45.0448,41.9734,0,0
+    ports:
+      - "14580:14580"
+    networks:
+      - safagri_net
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 14580 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  # ─── Бэкенд: переопределяем переменные и зависимости ─────────────────────
+  backend:
+    environment:
+      - SITL_HOSTS=tcp:sitl-1:14550,tcp:sitl-2:14560,tcp:sitl-3:14570,tcp:sitl-4:14580
+    depends_on:
+      sitl-1:
+        condition: service_healthy
+      sitl-2:
+        condition: service_healthy
+      sitl-3:
+        condition: service_healthy
+      sitl-4:
+        condition: service_healthy
+    networks:
+      - safagri_net
+
+networks:
+  safagri_net:
+    driver: bridge

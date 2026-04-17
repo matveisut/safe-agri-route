@@ -1,0 +1,58 @@
+# Dockerfile.sitl
+# Образ ArduPilot SITL на базе Ubuntu 22.04.
+# Сборка занимает ~10-15 минут при первом запуске.
+# Для ускорения можно использовать готовый образ ardupilot/ardupilot-sitl:latest
+# если он доступен в реестре Docker Hub.
+
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Базовые зависимости
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    python3 \
+    python3-pip \
+    python3-dev \
+    wget \
+    curl \
+    netcat-openbsd \
+    sudo \
+    lsb-release \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+# Клонируем ArduPilot
+RUN git clone --depth 1 --branch ArduCopter-stable \
+    https://github.com/ArduPilot/ardupilot.git /ardupilot
+
+WORKDIR /ardupilot
+
+# Установка зависимостей ArduPilot
+RUN git submodule update --init --recursive --depth 1
+
+# Запускаем install-prerequisites без интерактива
+RUN Tools/environment_install/install-prereqs-ubuntu.sh -y || true
+
+# Добавляем пользователя для запуска SITL (SITL не любит root)
+RUN useradd -m -s /bin/bash ardupilot && \
+    echo "ardupilot ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    chown -R ardupilot:ardupilot /ardupilot
+
+USER ardupilot
+
+# Переменные окружения по умолчанию (переопределяются через docker-compose)
+ENV INSTANCE=0
+ENV PORT=14550
+ENV LOCATION=45.0448,41.9734,0,0
+
+# Открываем порт
+EXPOSE ${PORT}
+
+CMD sim_vehicle.py \
+    -v ArduCopter \
+    --instance ${INSTANCE} \
+    --custom-location=${LOCATION} \
+    --out=tcp:0.0.0.0:${PORT} \
+    --no-mavproxy \
+    --speedup=1

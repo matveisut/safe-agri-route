@@ -614,6 +614,7 @@ class TestSITLIntegration:
     @classmethod
     def setup_class(cls):
         """Connect once to SITL for the entire test class."""
+        import time
         os.environ.setdefault("SITL_HOSTS", f"tcp:{SITL_HOST}:{SITL_PORT}")
 
         from app.services.mavlink_service import MAVLinkService
@@ -625,6 +626,14 @@ class TestSITLIntegration:
                 await cls.svc.connect_all()
 
         asyncio.run(_connect())
+
+        # ArduPilot SITL needs several seconds after the first heartbeat to:
+        #   1. finish EKF2 initialisation
+        #   2. acquire simulated GPS fix
+        #   3. transition out of BOOT mode and accept MAVLink commands
+        # Without this wait, MISSION_COUNT is silently dropped and
+        # GLOBAL_POSITION_INT reports lat=0 lng=0.
+        time.sleep(10)
 
     def test_connect_and_heartbeat(self):
         """Service should have at least one active connection after connect_all."""
@@ -656,8 +665,9 @@ class TestSITLIntegration:
 
     def test_telemetry_has_valid_coordinates(self):
         """
-        Read three telemetry frames — coordinates should be non-zero.
-        (SITL uses --custom-location=45.0448,41.9734 so lat/lng must be non-trivial.)
+        Read up to 20 telemetry frames — at least one must carry valid GPS.
+        (SITL uses --custom-location=45.0448,41.9734 so lat/lng must be non-trivial
+        once EKF2 has initialised, which takes a few seconds after boot.)
         """
         drone_id = list(self.svc.connections.keys())[0]
 
@@ -665,7 +675,8 @@ class TestSITLIntegration:
             frames = []
             async for frame in self.svc.read_telemetry_loop(drone_id):
                 frames.append(frame)
-                if len(frames) >= 3:
+                # Stop as soon as we get a valid GPS frame, or after 20 frames
+                if (frame["lat"] != 0.0 or frame["lng"] != 0.0) or len(frames) >= 20:
                     break
             return frames
 

@@ -8,11 +8,21 @@ services:
       POSTGRES_USER: safeagri
       POSTGRES_PASSWORD: safeagripassword
       POSTGRES_DB: safeagriroute
-    ports:
-      - "5432:5432"
+    # Порт не публикуется на хост — к БД обращаются только изнутри Docker
+    # (бэкенд подключается по имени сервиса "db" внутри safagri_net).
+    # Если нужен прямой доступ с хоста (DBeaver, psql), раскомментировать:
+    # ports:
+    #   - "5433:5432"
     volumes:
       - safe_agri_route_pgdata:/var/lib/postgresql/data
+    networks:
+      - safagri_net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U safeagri -d safeagriroute"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
@@ -23,12 +33,41 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql+asyncpg://safeagri:safeagripassword@db:5432/safeagriroute
+      # SITL_HOSTS: переопределяется в docker-compose.sitl.yml для Docker-SITL,
+      # или задаётся вручную при использовании start_sitl_wsl.sh.
+      # Формат: tcp:HOST:PORT,tcp:HOST:PORT,...
+      # Для WSL2 SITL (запущен через start_sitl_wsl.sh) используйте host.docker.internal:
+      #   SITL_HOSTS=tcp:host.docker.internal:14550,tcp:host.docker.internal:14560,...
+      # По умолчанию — без SITL (режим симуляции по маршрутным точкам).
+      - SITL_HOSTS=${SITL_HOSTS:-}
     volumes:
       - ./backend:/app
     depends_on:
-      - db
-    # Command to run for dev server (it will automatically reload on code changes)
+      db:
+        condition: service_healthy
+    networks:
+      - safagri_net
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: safe_agri_route_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - safagri_net
+    restart: unless-stopped
+
+networks:
+  safagri_net:
+    driver: bridge
 
 volumes:
   safe_agri_route_pgdata:
