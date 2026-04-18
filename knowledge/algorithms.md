@@ -1,0 +1,167 @@
+# Алгоритмы SafeAgriRoute
+
+Описание математического ядра: как строится маршрут, как считается риск, как работает перепланирование.
+
+---
+
+## 1. Карта рисков (risk_map.py)
+
+**Входные данные:** полигон поля + список зон РЭБ (Shapely Polygon + severity + zone_type).
+
+**Алгоритм:**
+
+1. Строим дискретную сетку над `bbox` поля с шагом `grid_step` (дефолт 0.0002° ≈ 22 м).
+2. Для каждой ячейки `(i, j)` вычисляем риск `R ∈ [0, 1]`:
+   - **jammer-зона**: `r = severity × max(0, (radius - dist) / radius)`, где `radius = 0.005°` (~500 м). Линейное затухание от границы.
+   - **restricted-зона**: `r = severity` внутри полигона, 0 снаружи.
+   - `R = min(1.0, r_jammer + r_restricted)` — суммирование, нормализация на 1.
+3. Возвращаем: `(risk_grid, latlon_list, indices)`.
+
+**Использование в `RoutingService`:** точки с `R == 1.0` (внутри jammer) исключаются из пула waypoints; остальным выставляется вес `w = 1 / (1 - R + ε)`.
+
+---
+
+## 2. Risk-Weighted Voronoi (RoutingService)
+
+Заменяет классический K-Means. Реализован через **взвешенный алгоритм Ллойда** до 50 итераций.
+
+**Зачем?** Обычный K-Means делит поле на равные части. Risk-Weighted Voronoi отталкивает центроиды от зон РЭБ, чтобы кластеры (зоны ответственности дронов) не накрывали опасные территории.
+
+**Шаги:**
+
+```
+1. Инициализация: N центроидов равномерно внутри поля (uniform sampling по bbox + filter inside polygon)
+2. Итерация до сходимости (max 50):
+   a. Для каждой точки (p, w) — найти ближайший центроид (евклидово расстояние)
+   b. Сдвинуть центроид в взвешенный центр масс своей зоны:
+      c_new = Σ(p * w) / Σ(w)
+3. Возврат: список кластеров [[Point, ...], ...]
+```
+
+**Назначение дронов на кластеры** — жадный алгоритм:
+- `zone_load = Σ w` (сумма весов точек кластера) — "тяжесть" зоны
+- Дроны сортируются по `battery_capacity × max_speed` (суммарный ресурс)
+- Самый мощный дрон → самый тяжёлый кластер (Assignment Problem, жадное решение)
+
+---
+
+## 3. Penalty-граф и OR-Tools CVRP
+
+После разбивки на кластеры для каждого дрона решается **TSP** внутри его кластера.
+
+### 3.1 Построение графа (NetworkX)
+
+Полный граф на точках кластера. Вес ребра A→B:
+
+```
+weight(A, B) = dist_euclidean(A, B) + Σ penalty(A, B, zone)
+```
+
+**Penalty**: если прямая `LineString(A, B)` пересекает `RiskZone`, то:
+
+```
+penalty = severity_weight × 500
+```
+
+Число 500 выбрано так, чтобы любой путь в обход зоны (даже значительно длиннее) был дешевле прямого пролёта насквозь. Это **не запрещает** маршрут, но делает его **математически невыгодным**.
+
+### 3.2 OR-Tools CVRP
+
+**Матрица расстояний** (float → int через `DISTANCE_SCALER = 100_000_000`):
+
+```python
+dist_matrix[i][j] = int(weight(points[i], points[j]) * DISTANCE_SCALER)
+```
+
+**Эвристика:** `PATH_CHEAPEST_ARC` (жадный старт от ближайшего ребра, затем 2-opt улучшение).
+
+**Результат:** массив индексов — порядок обхода точек. Конвертируется в `List[RoutePoint]`.
+
+**Время работы:** O(n² × m) где n — точки кластера, m — зоны риска. Для n=67, m=2 → ~10 мс.
+
+---
+
+## 4. Метрики миссии
+
+### 4.1 Reliability Index (IRM)
+
+```
+IRM = 1 - mean(risk[wp] for wp in all_waypoints)
+```
+
+`risk[wp]` — значение из `risk_grid` в ячейке, ближайшей к waypoint. IRM ∈ [0, 1]. Чем выше — тем безопаснее маршрут.
+
+### 4.2 Estimated Coverage
+
+```
+coverage_pct = (len(safe_waypoints) / len(all_field_grid_points)) × 100
+```
+
+`safe_waypoints` — точки, не попавшие в зоны РЭБ. Показывает, какой процент поля дроны смогут покрыть с учётом исключений.
+
+---
+
+## 5. Динамическое перепланирование (replanner.py)
+
+### 5.1 Сценарий A — потеря дрона
+
+**Триггер:** heartbeat пропал >5 сек → `status = LOST`.
+
+**Алгоритм:**
+
+```
+1. Взять uncovered = route[visited:] потерянного дрона
+2. Вычислить residual_capacity[drone] = battery × speed для активных дронов
+3. weights[drone] = cap / Σ cap
+4. Для каждого активного дрона:
+   a. n_take = round(weights[drone] × len(uncovered))
+   b. Отсортировать uncovered по расстоянию от last_pos дрона
+   c. Забрать n_take ближайших точек
+5. merged[drone] = existing_remaining + assigned
+6. Запустить greedy NN TSP для каждого drone в thread pool (asyncio.gather)
+7. Вычислить новый IRM
+```
+
+**Greedy NN TSP** (O(n²)):
+```python
+current = points[0]
+while remaining:
+    nearest = min(remaining, key=lambda p: (p.x-cx)²+(p.y-cy)²)  # squared euclidean
+    tour.append(nearest)
+    current = nearest
+```
+
+Squared Euclidean вместо полного `Point.distance()` — нет `sqrt`, результат тот же (монотонность сохраняется).
+
+**Время:** ≤500 мс для 4 дронов × 67 waypoints каждый (с прогретым executor).
+
+### 5.2 Сценарий B — новая зона РЭБ
+
+**Триггер:** оператор рисует новый полигон → `POST /mission/{id}/risk-zones`.
+
+**Алгоритм:**
+
+```
+1. Добавить новую зону в карту рисков инкрементально
+2. Для каждого активного дрона:
+   a. remaining = route[visited:]
+   b. Проверить: LineString(remaining[i], remaining[i+1]).intersects(new_zone) ?
+   c. Если ДА → добавить в routes_to_replan
+3. Для затронутых дронов: re-solve greedy NN TSP с обновлёнными весами рёбер
+4. Незатронутые дроны: маршрут не меняется
+5. Вычислить новый IRM
+```
+
+---
+
+## 6. Coordinate System
+
+Все координаты — **WGS 84 (EPSG:4326)**, пары `(longitude, latitude)` в Shapely, `(latitude, longitude)` в Leaflet.
+
+Конвертация на фронтенде при рендеринге:
+```typescript
+// GeoJSON: [lng, lat] → Leaflet: [lat, lng]
+const leafletCoord = [coord[1], coord[0]];
+```
+
+Почему евклидово расстояние вместо Haversine: на полях ≤10 км ошибка <0.1%, приемлемо. Для полей >10 км нужен переход на Haversine в `calculate_distance()`.

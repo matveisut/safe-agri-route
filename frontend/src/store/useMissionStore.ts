@@ -44,6 +44,7 @@ export interface MissionStats {
 export type DroneStatus = 'active' | 'lost' | 'idle';
 
 interface MissionState {
+  fields: FieldType[];
   selectedFieldId: number | null;
   selectedDroneIds: number[];
   plannedRoutes: DroneRoute[];
@@ -61,6 +62,7 @@ interface MissionState {
   droneStatuses: Record<number, DroneStatus>;
 
   // Actions
+  setFields: (fields: FieldType[]) => void;
   setSelectedField: (id: number) => void;
   toggleDroneSelection: (id: number) => void;
   setPlannedRoutes: (routes: DroneRoute[]) => void;
@@ -75,8 +77,9 @@ interface MissionState {
 }
 
 export const useMissionStore = create<MissionState>((set) => ({
+  fields: [],
   selectedFieldId: null,
-  selectedDroneIds: [],
+  selectedDroneIds: [1, 2, 3],
   plannedRoutes: [],
   telemetry: {},
   missionStats: null,
@@ -84,6 +87,8 @@ export const useMissionStore = create<MissionState>((set) => ({
   showRiskOverlay: false,
   missionIsActive: false,
   droneStatuses: {},
+
+  setFields: (fields) => set({ fields }),
 
   setSelectedField: (id) => set({ selectedFieldId: id }),
 

@@ -59,6 +59,8 @@ services:
       - "3000:3000"
     environment:
       - VITE_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend/src:/app/src
     depends_on:
       - backend
     networks:

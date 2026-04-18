@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
-import { useMissionStore, FieldType } from '../../store/useMissionStore';
+import { useMissionStore } from '../../store/useMissionStore';
 import { useTelemetry } from '../../hooks/useTelemetry';
 
 // ---------------------------------------------------------------------------
@@ -57,7 +57,6 @@ function CoverageBar({ value }: { value: number }) {
 // ---------------------------------------------------------------------------
 
 export default function MissionPanel() {
-  const [fields, setFields] = useState<FieldType[]>([]);
   const [isPlanning, setIsPlanning] = useState(false);
 
   const ALL_DRONES = [
@@ -67,6 +66,7 @@ export default function MissionPanel() {
   ];
 
   const {
+    fields,
     selectedFieldId,
     setSelectedField,
     selectedDroneIds,
@@ -81,23 +81,18 @@ export default function MissionPanel() {
   const { startSimulation, stopSimulation, isConnected } = useTelemetry();
 
   useEffect(() => {
-    async function fetchFields() {
-      try {
-        const res = await api.get('/mission/fields');
-        setFields(res.data.fields);
-        if (res.data.fields.length > 0 && !selectedFieldId) {
-          setSelectedField(res.data.fields[0].id);
-        }
-      } catch (e) {
-        console.error(e);
-      }
+    if (fields.length > 0 && !selectedFieldId) {
+      setSelectedField(fields[0].id);
     }
-    fetchFields();
-  }, []);
+  }, [fields]);
 
   const handlePlanRoute = async () => {
-    if (!selectedFieldId || selectedDroneIds.length === 0) {
-      alert('Please select a field and at least one drone');
+    if (!selectedFieldId) {
+      alert('Please select a field');
+      return;
+    }
+    if (selectedDroneIds.length === 0) {
+      alert('Please select at least one drone');
       return;
     }
 

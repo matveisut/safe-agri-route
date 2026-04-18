@@ -121,7 +121,6 @@ function FieldNameForm({ onConfirm, onCancel, isSaving }: FieldNameFormProps) {
 const DRONE_COLORS = ['#3b82f6', '#8b5cf6', '#eab308', '#14b8a6'];
 
 export default function MapArea() {
-  const [fields, setFields] = useState<FieldType[]>([]);
   const [riskZones, setRiskZones] = useState<RiskZoneType[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -131,6 +130,8 @@ export default function MapArea() {
   const [isSaving, setIsSaving] = useState(false);
 
   const {
+    fields,
+    setFields,
     plannedRoutes,
     telemetry,
     showRiskOverlay,
@@ -153,7 +154,7 @@ export default function MapArea() {
         api.get('/mission/risk-zones'),
       ]);
       setFields(fieldsRes.data.fields);
-      setRiskZones(zonesRes.data.risk_zones);
+      setRiskZones(zonesRes.data.risk_zones ?? []);
     } catch (err) {
       console.error('Failed to load map data', err);
     } finally {
