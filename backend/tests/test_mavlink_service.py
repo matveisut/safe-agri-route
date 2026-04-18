@@ -24,12 +24,21 @@ import pytest
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _sitl_available(host: str = "127.0.0.1", port: int = 5760, timeout: float = 1.0) -> bool:
-    """Return True only if something is listening on the SITL TCP port right now."""
+def _sitl_available(host: str = "127.0.0.1", port: int = 5760, timeout: float = 4.0) -> bool:
+    """Return True only if SITL is listening AND responds with a MAVLink heartbeat.
+
+    A plain TCP connect check is not enough: ArduCopter may accept the socket
+    but already have another client (e.g. the running backend container) that
+    holds the single active slot. We probe with pymavlink to confirm a
+    heartbeat is actually reachable from this process.
+    """
     try:
-        with socket.create_connection((host, port), timeout=timeout):
-            return True
-    except OSError:
+        import pymavlink.mavutil as mavutil  # noqa: PLC0415
+        m = mavutil.mavlink_connection(f"tcp:{host}:{port}", retries=0)
+        hb = m.recv_match(type="HEARTBEAT", blocking=True, timeout=timeout)
+        m.close()
+        return hb is not None
+    except Exception:
         return False
 
 

@@ -336,7 +336,7 @@ class TestSITLScript:
         assert os.access(SITL_SCRIPT, os.X_OK), \
             f"{SITL_SCRIPT} не исполняемый; выполните: chmod +x start_sitl_wsl.sh"
 
-    @pytest.mark.parametrize("port", [14550, 14560, 14570, 14580])
+    @pytest.mark.parametrize("port", [5760, 5770, 5780, 5790])
     def test_all_four_ports_present(self, port):
         assert str(port) in self.content, \
             f"Порт {port} не найден в start_sitl_wsl.sh"
