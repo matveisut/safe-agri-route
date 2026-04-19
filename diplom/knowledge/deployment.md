@@ -53,24 +53,24 @@ tcp:HOST:PORT,tcp:HOST:PORT,...
 bash start_sitl_wsl.sh
 ```
 
-Скрипт:
-- Запускает 4 ArduCopter на портах 14550 / 14560 / 14570 / 14580
-- Логи: `/tmp/sitl_drone_0/sitl.log` … `/tmp/sitl_drone_3/sitl.log`
-- PIDs: `/tmp/sitl_pids.txt`
+Скрипт запускает **4 screen-сессии** (`sitl_0`…`sitl_3`), каждая = `sim_vehicle.py` с MAVProxy:
+- Каждая сессия: `sim_vehicle.py -v ArduCopter --instance N --out tcpin:0.0.0.0:PORT --no-rebuild`
+- MAVProxy слушает входящие TCP-соединения (`tcpin` = server mode) на каждом порту
+- `SITL_RITW_TERMINAL=bash` → arducopter стартует без xterm (headless-совместимо)
+- Логи: `/tmp/sitl_drone_0.log` … `/tmp/sitl_drone_3.log`
+- Просмотр сессии: `screen -r sitl_0` (выход: Ctrl+A D)
+- Остановка всех: `screen -ls | grep sitl | awk '{print $1}' | xargs -I{} screen -S {} -X quit`
 
-После запуска скрипта настроить `SITL_HOSTS` в docker-compose.yml перед `docker-compose up`:
+Скрипт сам ждёт открытия каждого порта перед следующим инстансом — гарантирует порядок запуска.
 
-```yaml
-# docker-compose.yml → backend → environment
-- SITL_HOSTS=tcp:host.docker.internal:14550,tcp:host.docker.internal:14560,tcp:host.docker.internal:14570,tcp:host.docker.internal:14580
+`SITL_HOSTS` уже прописан в `.env` корня проекта:
+```
+SITL_HOSTS=tcp:host.docker.internal:14550,tcp:host.docker.internal:14560,tcp:host.docker.internal:14570,tcp:host.docker.internal:14580
 ```
 
-Либо через env-переменную:
-```bash
-SITL_HOSTS="tcp:host.docker.internal:14550,..." docker-compose up -d
-```
+**WSL2-нюанс:** `host.docker.internal` → IP Windows-хоста. SITL в WSL2 должен слушать на `0.0.0.0` (не `127.0.0.1`) — MAVProxy с `tcpin:0.0.0.0:PORT` это обеспечивает автоматически.
 
-**WSL2-нюанс:** `host.docker.internal` резолвится в IP хостовой машины WSL2 (Windows-хост). Docker Desktop автоматически прописывает этот хост. Если не резолвится — проверить `extra_hosts` в docker-compose.yml или `/etc/hosts` внутри контейнера.
+**Почему screen, а не background bash?** MAVProxy требует настоящий PTY (псевдотерминал). Без него при перезапуске arducopter MAVProxy падает с `multiprocessing pipe error`. `screen -d -m` даёт полноценный PTY в detached режиме.
 
 ---
 

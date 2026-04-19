@@ -1,0 +1,201 @@
+{
+  "main": {
+    "id": "760d09447b08337b",
+    "type": "split",
+    "children": [
+      {
+        "id": "24964b84f3cf2b68",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "eab1d3c7f58ba8ee",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Граф"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "380b751b56a1f276",
+    "type": "split",
+    "children": [
+      {
+        "id": "717a3c32889a3ea3",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "aca75638e7ffcafd",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Файловый менеджер"
+            }
+          },
+          {
+            "id": "107f691bf92caf24",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Поиск"
+            }
+          },
+          {
+            "id": "37e3ca3b2c4ad50e",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Закладки"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "4020ca5b7fdf14f7",
+    "type": "split",
+    "children": [
+      {
+        "id": "cd363417b13db89c",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "77ffab34dfbb8417",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Добро пожаловать.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Обратные ссылки для Добро пожаловать"
+            }
+          },
+          {
+            "id": "e2d1f23309fb5715",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Добро пожаловать.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Исходящие ссылки из Добро пожаловать"
+            }
+          },
+          {
+            "id": "4215ec269e0446f9",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Теги"
+            }
+          },
+          {
+            "id": "a7ea875a99bec021",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Все свойства"
+            }
+          },
+          {
+            "id": "e75a8e3537834e21",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Добро пожаловать.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Структура Добро пожаловать"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Меню быстрого перехода": false,
+      "graph:Граф": false,
+      "canvas:Создать новый холст": false,
+      "daily-notes:Сегодняшняя заметка": false,
+      "templates:Вставить шаблон": false,
+      "command-palette:Открыть палитру команд": false,
+      "bases:Создать новую базу": false
+    }
+  },
+  "active": "eab1d3c7f58ba8ee",
+  "lastOpenFiles": [
+    "Добро пожаловать.md",
+    "План обдуманный.md",
+    "roadmap_task.md",
+    "knowledge/testing.md",
+    "knowledge/sitl-debugging.md",
+    "knowledge/deployment.md",
+    "knowledge/data-models.md",
+    "knowledge/api-reference.md",
+    "knowledge/architecture.md",
+    "knowledge/algorithms.md",
+    "knowledge",
+    "README.md",
+    "zadanie_vkrs.md",
+    "Промпты_архив.md",
+    "ТЗ.md",
+    "Промпты.md"
+  ]
+}

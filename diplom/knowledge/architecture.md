@@ -9,9 +9,12 @@
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                     Frontend (React)                     │
-│  MissionPanel  ──►  POST /mission/plan                  │
-│  MapArea       ◄──  GET  /fields, /risk-zones           │
-│  useTelemetry  ◄──  WS   /ws/telemetry/{drone_id}       │
+│  MissionPanel  ──►  POST /api/v1/mission/plan            │
+│  MapArea       ◄──  GET  /api/v1/mission/fields          │
+│                  ◄──  GET  /api/v1/mission/risk-zones    │
+│  useTelemetry  ◄──  WS   /ws/telemetry (симуляция по     │
+│                        плану) и /ws/telemetry/{id}       │
+│                        (живой MAVLink при SITL)          │
 └───────────────────────────┬─────────────────────────────┘
                             │ HTTP / WebSocket
                             ▼
@@ -19,8 +22,8 @@
 │                    Backend (FastAPI)                      │
 │                                                          │
 │  /auth/*          JWT auth (login / register)           │
-│  /api/v1/mission  Mission planning & replanning          │
-│  /ws/telemetry    MAVLink telemetry stream               │
+│  /api/v1/mission  plan, fields, risk-zones, start, replan│
+│  /ws/telemetry*   телеметрия (см. выше)                  │
 │                                                          │
 │  ┌──────────────┐  ┌────────────────┐  ┌─────────────┐  │
 │  │RoutingService│  │  RiskMapService │  │  Replanner  │  │
@@ -32,11 +35,25 @@
 └─────────────────────────────┼───────────────────────────┘
                               │ TCP (MAVLink 2.0)
                               ▼
-               ┌──────────────────────────┐
-               │   ArduPilot SITL / Drone  │
-               │   tcp:127.0.0.1:5760      │
-               └──────────────────────────┘
+               ┌──────────────────────────────────────┐
+               │   ArduPilot SITL (WSL2 screen)        │
+               │   MAVProxy tcpin — server mode:        │
+               │   tcp:0.0.0.0:14550  (дрон 0)         │
+               │   tcp:0.0.0.0:14560  (дрон 1)         │
+               │   tcp:0.0.0.0:14570  (дрон 2)         │
+               │   tcp:0.0.0.0:14580  (дрон 3)         │
+               │                                        │
+               │   Docker → host.docker.internal:14550… │
+               └──────────────────────────────────────┘
 ```
+
+### Целевой контур: динамическое определение угрозы (не MVP)
+
+В продуктовой дорожной карте предусмотрен модуль **Threat Fusion / Risk Inference** (см. `ТЗ.md` §10): потоки данных с борта и с наземки агрегируются и дают **обновление карты риска** или **кандидатные полигоны** без ручного ввода.
+
+**Входы (примеры):** качество и устойчивость **GNSS** (DOP, скачки, невязка с предсказанием); **IMU** (несогласованность с GNSS); **барометр**; **RSSI / задержки MAVLink**; **согласованность роя** (outlier одного дрона); в перспективе — **SDR/спектр** в полосах GNSS; **внешние ГИС-слои**; по-прежнему **оператор**.
+
+**Выход:** те же примитивы, что сейчас: обновлённый `risk_grid` / новая зона в БД → **`replanner`**. Реализация в текущем репозитории **не выполнена**; MVP опирается на ручные зоны и телеметрию MAVLink для отображения, без автоматического fusion.
 
 ---
 
@@ -185,6 +202,35 @@ SITL_HOSTS=tcp:127.0.0.1:5760,tcp:127.0.0.1:5770,...
 
 При потере heartbeat (>5 сек) дрон помечается `LOST`, телеметрия-генератор останавливается — вызывающий код может автоматически запустить replanner.
 
+**Жизненный цикл MAVLink-соединения:**
+
+```
+FastAPI startup (lifespan)
+  → mavlink_service.connect_all()
+      ├── TCP socket check (1s timeout) на каждый хост
+      ├── pymavlink connection (retries=3, timeout=5)
+      ├── recv_match(HEARTBEAT, timeout=10) → проверка живости
+      ├── OK  → connections[drone_id] = conn, status=ACTIVE
+      └── FAIL → simulation_mode=True (телеметрия симулируется)
+
+Фоновый reconnect loop (каждые 10 сек):
+  → для каждого LOST/DISCONNECTED дрона повторяет connect
+  → при успехе: статус → ACTIVE, обновляет connections[]
+
+read_telemetry_loop() (генератор):
+  → читает пакеты каждые 200 мс
+  → при heartbeat timeout >5 сек: статус → LOST, StopAsyncIteration
+  → WS-роутер ловит StopIteration → шлёт {"event":"drone_lost"} клиенту
+
+simulate_drone_loss():
+  → закрывает conn, удаляет из connections[]
+  → статус → LOST (без остановки SITL — демо-сценарий)
+```
+
+**Одно соединение на порт:** ArduCopter SITL принимает только одно активное TCP-соединение одновременно. Integration-тесты нельзя запускать пока бэкенд подключён к SITL.
+
+**Simulation mode:** если `SITL_HOSTS` пуст или все подключения упали — `simulation_mode=True`. В этом режиме `read_telemetry_loop` возвращает заглушку со статусом `STATUS_LOST`, WebSocket `/ws/telemetry` работает по маршрутным точкам (без pymavlink).
+
 ---
 
 ### 1.6 WebSocket телеметрия
@@ -226,6 +272,45 @@ Zustand обновляет только подписанные срезы сто
 
 - Выбор поля и дронов → `POST /mission/plan` → `setPlannedRoutes`.
 - `startSimulation()` из `useTelemetry.ts` → открывает WebSocket → обновляет `telemetry` в стейте.
+
+### 2.4 Аутентификация на фронтенде
+
+Файлы: `frontend/src/services/api.ts`, `frontend/src/App.tsx`
+
+**Хранение токена:** `localStorage` под ключом `access_token`. Axios-инстанс автоматически добавляет `Authorization: Bearer <token>` через request-interceptor.
+
+**401-interceptor (автовыход):**
+
+```typescript
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('access_token');
+      window.dispatchEvent(new Event('auth:logout'));
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+При истёкшем токене interceptor:
+1. Удаляет токен из localStorage
+2. Диспатчит кастомное событие `auth:logout`
+
+**App.tsx** слушает `auth:logout` и переключает состояние без перезагрузки страницы:
+
+```typescript
+const [authed, setAuthed] = useState(() => !!localStorage.getItem('access_token'));
+useEffect(() => {
+  const handler = () => setAuthed(false);
+  window.addEventListener('auth:logout', handler);
+  return () => window.removeEventListener('auth:logout', handler);
+}, []);
+if (!authed) return <LoginPage onLogin={() => setAuthed(true)} />;
+```
+
+**Почему событие, а не прямой вызов?** Interceptor в `api.ts` не знает о React-компонентах — кастомное DOM-событие позволяет развязать слои без prop drilling или Zustand-зависимости в сервисном слое.
 
 ---
 

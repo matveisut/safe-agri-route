@@ -178,7 +178,7 @@ pytest -m stack
 
 **`TestSITLCompose`** — docker-compose.sitl.yml: 4 SITL-сервиса, порты 14550-14580, инстансы 0-3, координаты Ставрополя, healthcheck nc, SITL_HOSTS в backend-оверлее, depends_on с service_healthy.
 
-**`TestSITLScript`** — start_sitl_wsl.sh: shebang, executable, 4 порта, ArduCopter, --no-mavproxy, PID-файл, bash синтаксис.
+**`TestSITLScript`** — start_sitl_wsl.sh: shebang, executable, 4 порта (14550-14580), ArduCopter, `screen`-сессии, `tcpin` (server-mode), `screen -X quit` для остановки, bash синтаксис.
 
 **`TestDockerfileSITL`** — Ubuntu 22.04, ArduPilot, ENV INSTANCE/PORT, sim_vehicle.py, non-root USER.
 
@@ -186,7 +186,7 @@ pytest -m stack
 
 **`TestDockerConfigValidation`** *(маркер docker)* — `docker compose config` не падает для обоих compose-файлов.
 
-**`TestRunningStack`** *(маркер stack)* — порты 8000/3000 открыты, Swagger 200, /auth/login 4xx, /fields 401.
+**`TestRunningStack`** *(маркер stack)* — порты 8000/3000 открыты, Swagger 200, `/auth/login` 4xx, `GET /api/v1/mission/fields` без токена → 401.
 
 **`TestSITLHostsConfig`** — `_parse_sitl_hosts()` корректно разбирает строки из SITL-оверлея: 4 дрона, tcp-схема, sequential IDs от 1.
 
