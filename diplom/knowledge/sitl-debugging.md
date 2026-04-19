@@ -162,17 +162,52 @@ source ~/venv-ardupilot/bin/activate
 # 2. Запустить SITL
 bash start_sitl_wsl.sh
 
-# 3. Проверить порты (через ~15 сек)
-ss -tlnp | grep "576"
+# 3. Проверить порты MAVProxy tcpin (~15-30 сек после запуска)
+ss -tlnp | grep "1455"
+# Должны быть: 14550, 14560, 14570, 14580
 
-# 4. Проверить heartbeat
+# 4. Проверить heartbeat через все 4 порта
 python3 -c "
 import pymavlink.mavutil as m
-conn = m.mavlink_connection('tcp:127.0.0.1:5760', retries=1)
-hb = conn.recv_match(type='HEARTBEAT', blocking=True, timeout=5)
-print('OK:', hb) if hb else print('FAIL')
+for port in [14550, 14560, 14570, 14580]:
+    conn = m.mavlink_connection(f'tcp:127.0.0.1:{port}', retries=1)
+    hb = conn.recv_match(type='HEARTBEAT', blocking=True, timeout=5)
+    print(f'Port {port}:', 'OK sysid=' + str(hb.get_srcSystem()) if hb else 'FAIL')
+    conn.close()
 "
 
-# 5. Перезапустить бэкенд с новым .env
+# 5. Перезапустить бэкенд
 docker-compose up -d --no-deps backend
+
+# 6. Проверить что бэкенд подключился к SITL (не simulation mode)
+docker-compose logs backend | grep -i "sitl\|mavlink\|connect\|simulation"
 ```
+
+---
+
+## 6. Хронология сессии: итоговый путь к рабочей конфигурации
+
+Краткая выжимка всего что было отлажено:
+
+| Подход | Результат | Почему не работает |
+|---|---|---|
+| `arducopter --serial0 tcp:PORT --no-mavproxy` | Падает ~15 сек | Нет RC input → physics freeze → "Waiting for internal clock bits" |
+| `sim_vehicle.py --out=tcp:PORT --no-mavproxy` | Порты не открываются | `--out` — флаг MAVProxy; без MAVProxy игнорируется |
+| `sim_vehicle.py` без screen, `mavproxy.py` в background bash | MAVProxy crash loop | Нет PTY → multiprocessing pipe error при перезапуске arducopter |
+| `sim_vehicle.py` в `screen -d -m` с `--out tcpin:PORT` | **Работает** | screen даёт PTY; MAVProxy слушает входящие TCP как сервер |
+
+**Ключевой инсайт:** MAVProxy — не просто прокси, он поставляет RC input для физического симулятора ArduCopter (UDP 5501). Без MAVProxy физика не тикает. Без PTY MAVProxy падает при перезапусках arducopter.
+
+---
+
+## 7. Симптомы и диагностика
+
+| Симптом в логах | Причина | Решение |
+|---|---|---|
+| `Waiting for internal clock bits (current=0x00)` | MAVProxy не отправляет RC input на UDP 5501 | Убедиться что запускается с MAVProxy (без `--no-mavproxy`) |
+| `MAVProxy exited` сразу после старта | нет PTY или arducopter не стартовал | Запускать в `screen -d -m` |
+| `_recv_bytes` / pipe error в MAVProxy | нет PTY при перезапуске arducopter | Запускать в `screen -d -m` |
+| `EOF on TCP socket` (arducopter) | запуск arducopter напрямую без sim_vehicle.py | Всегда через `sim_vehicle.py` |
+| Порты 14550-14580 не видны (`ss -tlnp`) | MAVProxy ещё не запустил tcpin listener | Подождать 20-30 сек; проверить лог `/tmp/sitl_drone_N.log` |
+| Бэкенд пишет `simulation mode` | `SITL_HOSTS` пуст или порты не открыты | Проверить `.env`, запустить SITL перед бэкендом |
+| Integration-тесты не получают heartbeat | Бэкенд занял соединение | `docker-compose stop backend` перед `pytest -m integration` |

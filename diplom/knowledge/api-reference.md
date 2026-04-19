@@ -385,3 +385,24 @@ username=operator@safegriroute.com&password=operator123
 | 403 | Роль viewer пытается выполнить operator-действие |
 | 404 | Field/Drone не найден |
 | 500 | БД недоступна, внутренняя ошибка маршрутизатора |
+
+---
+
+## Поведение клиента при 401
+
+Фронтенд (`frontend/src/services/api.ts`) имеет response interceptor:
+
+```
+401 ответ
+  → localStorage.removeItem('access_token')
+  → window.dispatchEvent(new Event('auth:logout'))
+  → App.tsx слушает событие → setAuthed(false) → LoginPage
+```
+
+Автоматический редирект на логин — без перезагрузки страницы. Подходит для случаев: истёкший JWT (8 часов), удалённый пользователь, ручная инвалидация токена.
+
+---
+
+## Особенности WebSocket авторизации
+
+WebSocket-эндпоинты (`/ws/telemetry`, `/ws/telemetry/{id}`) **не защищены JWT** на уровне FastAPI. Токен не передаётся в WS-соединении. Это намеренное упрощение для MVP — в продакшене нужна либо передача токена через query-param, либо cookie-based auth.
