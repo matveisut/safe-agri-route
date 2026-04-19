@@ -10,11 +10,11 @@
 ┌─────────────────────────────────────────────────────────┐
 │                     Frontend (React)                     │
 │  MissionPanel  ──►  POST /api/v1/mission/plan            │
+│                  ──►  POST .../fusion-context (опц. §10) │
 │  MapArea       ◄──  GET  /api/v1/mission/fields          │
 │                  ◄──  GET  /api/v1/mission/risk-zones    │
-│  useTelemetry  ◄──  WS   /ws/telemetry (симуляция по     │
-│                        плану) и /ws/telemetry/{id}       │
-│                        (живой MAVLink при SITL)          │
+│  useTelemetry  ◄──  WS   /ws/telemetry (симуляция)      │
+│  useLiveFusionSocket ◄── WS /ws/telemetry/{id} + fusion │
 └───────────────────────────┬─────────────────────────────┘
                             │ HTTP / WebSocket
                             ▼
@@ -22,12 +22,14 @@
 │                    Backend (FastAPI)                      │
 │                                                          │
 │  /auth/*          JWT auth (login / register)           │
-│  /api/v1/mission  plan, fields, risk-zones, start, replan│
-│  /ws/telemetry*   телеметрия (см. выше)                  │
+│  /api/v1/mission  plan, fields, risk-zones, start, replan, fusion-context│
+│  /ws/telemetry*   телеметрия; fusion — в /ws/telemetry/{id}              │
+│  telemetry_features / threat_fusion / mission_fusion_runtime (§10)     │
 │                                                          │
-│  ┌──────────────┐  ┌────────────────┐  ┌─────────────┐  │
-│  │RoutingService│  │  RiskMapService │  │  Replanner  │  │
-│  └──────┬───────┘  └────────────────┘  └──────┬──────┘  │
+│  ┌──────────────┐  ┌─────────────────┐  ┌─────────────┐  │
+│  │RoutingService│  │ risk_map.py     │  │  Replanner  │  │
+│  └──────┬───────┘  │ (build_risk_map)│  └──────┬──────┘  │
+│         │          └─────────────────┘         │         │
 │         │                                      │         │
 │  ┌──────▼──────────────────────────────────────▼──────┐  │
 │  │              MAVLinkService (pymavlink)             │  │
@@ -47,13 +49,19 @@
                └──────────────────────────────────────┘
 ```
 
-### Целевой контур: динамическое определение угрозы (не MVP)
+### Контур §10: динамическое определение угрозы (MVP-надстройка)
 
-В продуктовой дорожной карте предусмотрен модуль **Threat Fusion / Risk Inference** (см. `ТЗ.md` §10): потоки данных с борта и с наземки агрегируются и дают **обновление карты риска** или **кандидатные полигоны** без ручного ввода.
+В **`ТЗ.md` §10** описана целевая мультисенсорная модель. В репозитории (промпты **9–12**) реализован **упрощённый** контур без отдельных драйверов SDR и без ML:
 
-**Входы (примеры):** качество и устойчивость **GNSS** (DOP, скачки, невязка с предсказанием); **IMU** (несогласованность с GNSS); **барометр**; **RSSI / задержки MAVLink**; **согласованность роя** (outlier одного дрона); в перспективе — **SDR/спектр** в полосах GNSS; **внешние ГИС-слои**; по-прежнему **оператор**.
+| Этап | Файлы / смысл |
+|------|----------------|
+| Признаки из MAVLink | `telemetry_features.py` — скользящие окна, эвристики GNSS / канала / IMU-прокси / роя |
+| Слияние | `threat_fusion.py` + `app/core/config.py` — взвешенная «угроза», EMA |
+| Интеграция | `mission_fusion_runtime.py` — при пороге и debounce: круговая зона jammer → `replan_on_new_risk_zone`; опционально регистрация миссии через **`POST /api/v1/mission/{id}/fusion-context`** |
+| Транспорт в UI | `WS /ws/telemetry/{id}` — в JSON добавляется объект **`fusion`** (`fused_threat_level`, `breakdown`, `auto_replan_event_id`) |
+| Фронтенд | `useLiveFusionSocket`, состояние `liveFusion` в `useMissionStore`, блок в `MissionPanel` |
 
-**Выход:** те же примитивы, что сейчас: обновлённый `risk_grid` / новая зона в БД → **`replanner`**. Реализация в текущем репозитории **не выполнена**; MVP опирается на ручные зоны и телеметрию MAVLink для отображения, без автоматического fusion.
+**Перспектива (полная §10):** отдельные потоки IMU/GNSS-приёмника, SDR, внешние ГИС-слои — в ТЗ как расширение; в коде **не** реализованы.
 
 ---
 
@@ -105,7 +113,8 @@ oauth2_scheme (Bearer token)
 |---|---|
 | `GET /fields`, `GET /risk-zones` | viewer |
 | `POST /plan`, `POST /start` | operator |
-| `POST /simulate-loss`, `POST /risk-zones` | operator |
+| `POST /api/v1/mission/{id}/fusion-context` | operator |
+| `POST /simulate-loss`, `POST /risk-zones` (mid-mission) | operator |
 
 ---
 

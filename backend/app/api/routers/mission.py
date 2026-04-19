@@ -10,9 +10,11 @@ from app.schemas.mission import (
     StartMissionRequest, StartMissionResponse,
     CreateFieldRequest, CreateRiskZoneRequest,
 )
+
 from app.services.routing_service import RoutingService
 from app.services.replanner import replan_on_drone_loss, replan_on_new_risk_zone
 from app.services.mavlink_service import mavlink_service
+from app.services.mission_fusion_runtime import FusionMissionContext, set_fusion_context
 from app.api.deps import require_operator, require_viewer
 from app.models.user import User
 
@@ -197,6 +199,54 @@ async def start_mission(
         uploaded=uploaded_ids,
         started=started_ids,
     )
+
+
+@router.post("/{mission_id}/fusion-context")
+async def register_fusion_mission_context(
+    mission_id: int,
+    request: SimulateLossRequest,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_operator),
+):
+    """
+    Сохраняет маршруты и счётчики посещённых точек для автоперепланирования
+    по цепочке telemetry → features → fusion (ТЗ §10, Промпт 11).
+
+    Вызывайте после `/plan` (и опционально после `/start`), когда нужно,
+    чтобы высокая fused-угроза добавляла динамическую зону jammer и
+    запускала `replan_on_new_risk_zone` с ограничением частоты.
+    """
+    field = await field_repo.get(db, request.field_id)
+    if not field:
+        raise HTTPException(status_code=404, detail="Field not found")
+
+    field_polygon = shapely.wkb.loads(bytes(field.geometry.data))
+
+    drones = []
+    for d_id in request.drone_ids:
+        drone = await drone_repo.get(db, d_id)
+        if drone:
+            drones.append(drone)
+    if not drones:
+        raise HTTPException(status_code=400, detail="No valid drones found")
+
+    existing_zones = await risk_zone_repo.get_multi(db, limit=1000)
+
+    ctx = FusionMissionContext(
+        mission_id=mission_id,
+        field_id=request.field_id,
+        field_polygon=field_polygon,
+        drones=drones,
+        risk_zones=list(existing_zones),
+        current_routes=list(request.current_routes),
+        visited_counts=dict(request.visited_counts),
+    )
+    set_fusion_context(ctx)
+    return {
+        "status": "registered",
+        "mission_id": mission_id,
+        "drone_ids": request.drone_ids,
+    }
 
 
 @router.post("/{mission_id}/simulate-loss", response_model=ReplanResponse)

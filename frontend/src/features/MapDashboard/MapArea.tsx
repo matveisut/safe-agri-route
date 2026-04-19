@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Polygon, Polyline, CircleMarker } from 'react-leaflet';
 import api from '../../services/api';
-import { useMissionStore, FieldType, RiskZoneType } from '../../store/useMissionStore';
+import { useMissionStore, RiskZoneType } from '../../store/useMissionStore';
 import DrawControl, { DrawMode } from '../../components/DrawControl';
 import RiskOverlay from '../../components/RiskOverlay';
 
@@ -30,7 +30,7 @@ function RebZoneForm({ onConfirm, onCancel, isSaving }: RebZoneFormProps) {
           onChange={(e) => setZoneType(e.target.value as 'jammer' | 'restricted')}
           className="w-full bg-slate-700 border border-slate-600 rounded-lg p-2 mb-4 text-sm"
         >
-          <option value="jammer">Jammer (GPS / RF Blocker)</option>
+          <option value="jammer">Jammer zone</option>
           <option value="restricted">Restricted Area</option>
         </select>
 
@@ -286,12 +286,11 @@ export default function MapArea() {
         {riskZones.map((rz) => {
           const rawGeo = JSON.parse(rz.geojson);
           const positions = rawGeo.coordinates[0].map((c: number[]) => [c[1], c[0]]);
-          const colorName = rz.type.toLowerCase().includes('spoof') ? 'orange' : 'red';
           return (
             <Polygon
               key={`rz-${rz.id}`}
               positions={positions}
-              pathOptions={{ fillColor: colorName, color: colorName, weight: 1, fillOpacity: 0.4 }}
+              pathOptions={{ fillColor: 'red', color: 'red', weight: 1, fillOpacity: 0.4 }}
             />
           );
         })}
@@ -366,10 +365,7 @@ export default function MapArea() {
             <span className="w-4 h-4 bg-green-500 opacity-60 inline-block mr-2 rounded" /> Safe Field
           </li>
           <li className="flex items-center">
-            <span className="w-4 h-4 bg-red-500 opacity-60 inline-block mr-2 rounded" /> Jamming Zone
-          </li>
-          <li className="flex items-center">
-            <span className="w-4 h-4 bg-orange-500 opacity-60 inline-block mr-2 rounded" /> Spoofing Zone
+            <span className="w-4 h-4 bg-red-500 opacity-60 inline-block mr-2 rounded" /> Jamming zone
           </li>
           <li className="flex items-center">
             <span className="w-4 h-1 bg-blue-500 inline-block mr-2 rounded" /> Planned Path

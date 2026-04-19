@@ -157,8 +157,8 @@ class TestPlanMissionRiskPreview:
         for entry in result.risk_grid_preview:
             assert 0.0 <= entry["risk"] <= 1.0, f"risk out of range: {entry['risk']}"
 
-    def test_preview_is_sparse_every_third_point(self):
-        """Grid has N points; preview should have ~N/3 entries."""
+    def test_preview_is_sparse_every_second_point(self):
+        """Grid has N points; preview should have ceil(N/2) entries."""
         field = _make_field(SMALL_FIELD)
         drones = [_make_drone(1)]
 
@@ -170,11 +170,10 @@ class TestPlanMissionRiskPreview:
 
         with patch("app.services.routing_service.build_risk_map") as mock_brm:
             mock_brm.return_value = (fake_grid, fake_latlon, fake_indices)
-            # weighted_points will be empty → returns early with empty routes
             result = RoutingService.plan_mission(field, drones, [], step_deg=0.002)
 
-        # 9 total points → every 3rd → indices 0, 3, 6 → 3 preview entries
-        assert len(result.risk_grid_preview) == 3
+        # 9 total points → every 2nd → indices 0,2,4,6,8 → 5 preview entries
+        assert len(result.risk_grid_preview) == 5
 
     def test_result_dataclass_has_correct_fields(self):
         result = self._run_plan()

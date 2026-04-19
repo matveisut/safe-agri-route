@@ -38,7 +38,7 @@ screen -S "sitl_N" -d -m bash -c "
 SITL_HOSTS=tcp:host.docker.internal:14550,tcp:host.docker.internal:14560,tcp:host.docker.internal:14570,tcp:host.docker.internal:14580
 ```
 
-**Виртуальное окружение:** `~/venv-ardupilot` (содержит mavproxy, pymavlink, sim_vehicle.py зависимости).
+**Виртуальное окружение:** `~/venv-ardupilot` (как минимум: `pymavlink`, `MAVProxy`, **`pexpect`** — последний нужен `Tools/autotest/sim_vehicle.py` → `pysim`; без него `ModuleNotFoundError: pexpect`). Полный набор тянет `Tools/environment_install/install-prereqs-ubuntu.sh` из клона ArduPilot.
 
 **Просмотр инстанса:** `screen -r sitl_0` (выход: Ctrl+A D)
 
@@ -204,6 +204,7 @@ docker-compose logs backend | grep -i "sitl\|mavlink\|connect\|simulation"
 
 | Симптом в логах | Причина | Решение |
 |---|---|---|
+| `ModuleNotFoundError: No module named 'pexpect'` | В venv нет зависимости autotest (`pysim` / `sim_vehicle.py`) | `source ~/venv-ardupilot/bin/activate && pip install pexpect` |
 | `Waiting for internal clock bits (current=0x00)` | MAVProxy не отправляет RC input на UDP 5501 | Убедиться что запускается с MAVProxy (без `--no-mavproxy`) |
 | `MAVProxy exited` сразу после старта | нет PTY или arducopter не стартовал | Запускать в `screen -d -m` |
 | `_recv_bytes` / pipe error в MAVProxy | нет PTY при перезапуске arducopter | Запускать в `screen -d -m` |
@@ -211,3 +212,9 @@ docker-compose logs backend | grep -i "sitl\|mavlink\|connect\|simulation"
 | Порты 14550-14580 не видны (`ss -tlnp`) | MAVProxy ещё не запустил tcpin listener | Подождать 20-30 сек; проверить лог `/tmp/sitl_drone_N.log` |
 | Бэкенд пишет `simulation mode` | `SITL_HOSTS` пуст или порты не открыты | Проверить `.env`, запустить SITL перед бэкендом |
 | Integration-тесты не получают heartbeat | Бэкенд занял соединение | `docker-compose stop backend` перед `pytest -m integration` |
+
+---
+
+## 8. Связь с fusion (§10)
+
+При работающем SITL и подключении фронтенда к **`WS /ws/telemetry/{drone_id}`** в кадрах может приходить объект **`fusion`** (оценка угрозы и отладочный `breakdown`). Предварительно для авто-replan миссии нужно вызвать **`POST /api/v1/mission/{id}/fusion-context`**. Подробности — [`architecture.md`](architecture.md), [`api-reference.md`](api-reference.md).

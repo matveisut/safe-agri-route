@@ -146,6 +146,34 @@ class TestRestrictedZone:
 
 
 # ---------------------------------------------------------------------------
+# Test 3b — legacy / seed labels ("Jamming", "Spoofing") still drive the grid
+# ---------------------------------------------------------------------------
+
+class TestZoneTypeAliases:
+    """``build_risk_map`` must not require lowercase ``jammer`` only — see seed.py."""
+
+    JAMMER = Polygon([
+        (0.03, 0.03), (0.07, 0.03), (0.07, 0.07), (0.03, 0.07),
+    ])
+
+    def test_jamming_capitalized_behaves_as_jammer(self):
+        zones = [_zone(self.JAMMER, severity=1.0, zone_type="Jamming")]
+        risk_grid, _, _ = build_risk_map(FIELD, zones, grid_step=STEP)
+        assert float(risk_grid.max()) > 0.0
+
+    def test_spoofing_behaves_as_rf_jammer(self):
+        zones = [_zone(self.JAMMER, severity=1.0, zone_type="Spoofing")]
+        risk_grid, _, _ = build_risk_map(FIELD, zones, grid_step=STEP)
+        assert float(risk_grid.max()) > 0.0
+
+    def test_restricted_capitalized(self):
+        rz = Polygon([(0.02, 0.02), (0.05, 0.02), (0.05, 0.05), (0.02, 0.05)])
+        zones = [_zone(rz, severity=0.9, zone_type="Restricted")]
+        risk_grid, _, _ = build_risk_map(FIELD, zones, grid_step=STEP)
+        assert float(risk_grid.max()) > 0.0
+
+
+# ---------------------------------------------------------------------------
 # Test 4 — cells outside the field are NOT present in grid_points
 # ---------------------------------------------------------------------------
 

@@ -33,6 +33,9 @@ backend/
     ├── test_risk_map.py            # build_risk_map (jammer, restricted, boundary)
     ├── test_replanner.py           # replan_on_drone_loss, replan_on_new_risk_zone
     ├── test_mavlink_service.py     # MAVLinkService (unit + integration с SITL)
+    ├── test_telemetry_features.py  # признаки телеметрии (§10)
+    ├── test_threat_fusion.py       # слияние угрозы
+    ├── test_mission_fusion_integration.py  # fusion → replan (моки)
     ├── test_ui_endpoints.py        # Pydantic-схемы, risk_grid_preview, telemetry WS
     └── test_infrastructure.py     # docker-compose, скрипты, stack smoke-тесты
 ```

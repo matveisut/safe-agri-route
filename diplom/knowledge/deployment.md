@@ -32,7 +32,10 @@ docker exec safe_agri_route_backend python seed.py
 | `DATABASE_URL` | backend | asyncpg DSN | `postgresql+asyncpg://safeagri:safeagripassword@db:5432/safeagriroute` |
 | `SECRET_KEY` | backend | JWT signing key | `supersecretkey` (сменить в проде) |
 | `SITL_HOSTS` | backend | Список TCP-адресов SITL | `""` (simulation mode) |
+| `FUSION_THRESHOLD`, `FUSION_SMOOTH_ALPHA`, `FUSION_WEIGHT_*` | backend | Параметры fusion (§10), см. `app/core/config.py` | см. код / `.env` |
+| `FUSION_AUTO_REPLAN_STREAK`, `FUSION_AUTO_REPLAN_MIN_INTERVAL_SEC`, `FUSION_AUTO_ZONE_RADIUS_M` | backend | Авто-replan по fusion | см. код |
 | `VITE_API_URL` | frontend | Base URL бэкенда | `http://localhost:8000` |
+| `VITE_WS_ORIGIN` / `VITE_API_ORIGIN` | frontend | Опционально: WS/HTTP для fusion UI | по умолчанию `localhost:8000` |
 | `POSTGRES_USER` | db | Юзер PostgreSQL | `safeagri` |
 | `POSTGRES_PASSWORD` | db | Пароль | `safeagripassword` |
 | `POSTGRES_DB` | db | Имя БД | `safeagriroute` |

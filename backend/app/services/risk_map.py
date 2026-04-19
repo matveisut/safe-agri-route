@@ -17,6 +17,37 @@ from shapely.geometry import Polygon, Point
 _JAMMER_INFLUENCE_RADIUS = 0.005
 
 
+def _norm_zone_type(raw: Any) -> str:
+    if raw is None:
+        return ""
+    return str(raw).strip().lower()
+
+
+def _is_jammer_family(zone_type: str) -> bool:
+    """RF / REB zones: canonical ``jammer`` plus legacy seed/UI labels (``Jamming``, ``Spoofing``)."""
+    t = _norm_zone_type(zone_type)
+    return t in ("jammer", "jamming", "spoofing", "spoof")
+
+
+def _is_restricted_family(zone_type: str) -> bool:
+    t = _norm_zone_type(zone_type)
+    return t in ("restricted", "restriction")
+
+
+def _partition_zones(
+    risk_zones: List[Dict[str, Any]],
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    jammer_zones: List[Dict[str, Any]] = []
+    restricted_zones: List[Dict[str, Any]] = []
+    for z in risk_zones:
+        t = z.get("zone_type")
+        if _is_jammer_family(t):
+            jammer_zones.append(z)
+        elif _is_restricted_family(t):
+            restricted_zones.append(z)
+    return jammer_zones, restricted_zones
+
+
 def build_risk_map(
     field: Polygon,
     risk_zones: List[Dict[str, Any]],
@@ -33,7 +64,7 @@ def build_risk_map(
         Each dict must have keys:
             "geometry"  – Shapely Polygon of the zone
             "severity"  – float ∈ [0, 1]
-            "zone_type" – str, one of "jammer" | "restricted"
+            "zone_type" – str; jammer-like: ``jammer``, ``jamming``, ``spoofing``; restricted: ``restricted``
     grid_step : float
         Grid resolution in degrees (default 0.0002° ≈ 22 m).
 
@@ -56,8 +87,7 @@ def build_risk_map(
 
     risk_grid = np.zeros((N, M), dtype=float)
 
-    jammer_zones = [z for z in risk_zones if z.get("zone_type") == "jammer"]
-    restricted_zones = [z for z in risk_zones if z.get("zone_type") == "restricted"]
+    jammer_zones, restricted_zones = _partition_zones(risk_zones)
 
     grid_points: List[Tuple[float, float]] = []
     grid_indices: List[Tuple[int, int]] = []
@@ -74,7 +104,7 @@ def build_risk_map(
             r_jammer = 0.0
             for zone in jammer_zones:
                 geom: Polygon = zone["geometry"]
-                sev: float = zone["severity"]
+                sev = min(1.0, max(0.0, float(zone["severity"])))
                 if geom.contains(p):
                     r_jammer = max(r_jammer, sev)
                 else:
@@ -89,7 +119,7 @@ def build_risk_map(
             r_zone = 0.0
             for zone in restricted_zones:
                 if zone["geometry"].contains(p):
-                    r_zone = max(r_zone, zone["severity"])
+                    r_zone = max(r_zone, min(1.0, max(0.0, float(zone["severity"]))))
 
             # Combined risk – additive, capped at 1.0.
             # r_coverage = 0.0 for MVP (ground station always reachable).

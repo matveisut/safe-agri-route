@@ -227,6 +227,27 @@ username=operator@safegriroute.com&password=operator123
 
 ---
 
+### POST /mission/{mission_id}/fusion-context
+
+Зарегистрировать маршруты и счётчики посещённых точек для **автоматического** перепланирования по fusion (ТЗ §10, цепочка признаков → угроза → при пороге — круговая зона jammer и вызов `replan_on_new_risk_zone`). Вызывается клиентом после планирования, когда нужен этот режим.
+
+**Роль:** operator
+
+**Body:** тот же формат, что у `simulate-loss` (`field_id`, `drone_ids`, `current_routes`, `visited_counts`).
+
+**Response 200:**
+```json
+{
+  "status": "registered",
+  "mission_id": 1,
+  "drone_ids": [1, 2, 3]
+}
+```
+
+Пока контекст активен, поток MAVLink обрабатывается в `mission_fusion_runtime` (см. `knowledge/architecture.md`).
+
+---
+
 ## Динамическое перепланирование
 
 ### POST /mission/{mission_id}/simulate-loss
@@ -317,19 +338,22 @@ username=operator@safegriroute.com&password=operator123
 }
 ```
 
-**Сервер отправляет каждые 100 мс:**
+**Сервер отправляет каждые ~100 мс:**
 ```json
 {
-  "drone_id": 1,
-  "lat": 45.0441,
-  "lng": 42.1482,
-  "step": 3,
-  "total_steps": 47,
+  "telemetry": [
+    {
+      "drone_id": 1,
+      "lat": 45.0441,
+      "lng": 42.1482,
+      "status": "in_flight"
+    }
+  ],
   "irm_update": 0.87
 }
 ```
 
-`irm_update` — только в первом фрейме, потом отсутствует.
+`irm_update` — только в первом фрейме (если передан в запросе клиента), далее может отсутствовать. Поле **`fusion`** в этом режиме **не** отправляется (демо без MAVLink).
 
 ---
 
@@ -337,7 +361,7 @@ username=operator@safegriroute.com&password=operator123
 
 Реальная MAVLink телеметрия от SITL или физического дрона.
 
-**Сервер отправляет каждые 200 мс:**
+**Сервер отправляет каждые ~200 мс** (после расчёта признаков и fusion):
 ```json
 {
   "drone_id": 1,
@@ -347,9 +371,22 @@ username=operator@safegriroute.com&password=operator123
   "battery": 87,
   "heading": 135,
   "status": "ACTIVE",
-  "groundspeed": 12.3
+  "groundspeed": 12.3,
+  "fusion": {
+    "fused_threat_level": 0.42,
+    "breakdown": {
+      "raw_scores": { "gnss": 0.95, "link": 0.9, "imu_proxy": 0.88, "swarm": 1.0 },
+      "peril": {},
+      "weights": {},
+      "fused_raw": 0.35,
+      "any_feature_low": false
+    },
+    "auto_replan_event_id": 0
+  }
 }
 ```
+
+`fusion` присутствует после первого успешного расчёта по кадру; при отсутствии данных может не передаваться.
 
 `status`: `"ACTIVE"` | `"LANDED"` | `"LOST"`
 
@@ -369,6 +406,7 @@ username=operator@safegriroute.com&password=operator123
 | `/mission/risk-zones` | POST | operator |
 | `/mission/plan` | POST | operator |
 | `/mission/{id}/start` | POST | operator |
+| `/mission/{id}/fusion-context` | POST | operator |
 | `/mission/{id}/simulate-loss` | POST | operator |
 | `/mission/{id}/risk-zones` | POST | operator |
 | `/ws/telemetry` | WS | — |

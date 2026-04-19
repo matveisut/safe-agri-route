@@ -237,3 +237,9 @@ Swap координат на фронтенде (GeoJSON `[lng, lat]` → Leafle
 const coords = JSON.parse(geojson).coordinates[0];
 const leafletCoords = coords.map(([lng, lat]) => [lat, lng]);
 ```
+
+---
+
+## 7. Состояние fusion (§10) — не в БД
+
+Скользящие буферы телеметрии, последние значения fusion и контекст авто-replan хранятся **в памяти процесса** (`telemetry_features`, `mission_fusion_runtime`). В PostgreSQL **не** дублируются; для демо клиент передаёт маршруты через **`POST /mission/{id}/fusion-context`** при необходимости.

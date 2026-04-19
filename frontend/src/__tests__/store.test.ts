@@ -7,6 +7,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useMissionStore } from '../store/useMissionStore';
+import { riskHeatmapColor } from '../utils/riskHeatmapColor';
 
 // Reset the store state before each test to prevent cross-test pollution.
 beforeEach(() => {
@@ -220,36 +221,21 @@ describe('resetDroneStatuses', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// riskToColor helper (tested directly — mirrors the RiskOverlay logic)
-// ---------------------------------------------------------------------------
-
-function riskToColor(risk: number): string {
-  if (risk < 0.5) {
-    const r = Math.round(risk * 2 * 255);
-    return `rgb(${r}, 255, 0)`;
-  } else {
-    const g = Math.round((1 - (risk - 0.5) * 2) * 255);
-    return `rgb(255, ${g}, 0)`;
-  }
-}
-
-describe('riskToColor', () => {
-  it('returns pure green for risk=0', () => {
-    expect(riskToColor(0)).toBe('rgb(0, 255, 0)');
+describe('riskHeatmapColor', () => {
+  it('maps 0 to green hue', () => {
+    expect(riskHeatmapColor(0)).toMatch(/^hsl\(120,/);
   });
 
-  it('returns pure yellow for risk=0.5', () => {
-    expect(riskToColor(0.5)).toBe('rgb(255, 255, 0)');
+  it('maps 0.5 to mid hue (yellow)', () => {
+    expect(riskHeatmapColor(0.5)).toMatch(/^hsl\(60,/);
   });
 
-  it('returns pure red for risk=1', () => {
-    expect(riskToColor(1)).toBe('rgb(255, 0, 0)');
+  it('maps 1 to red hue', () => {
+    expect(riskHeatmapColor(1)).toMatch(/^hsl\(0,/);
   });
 
-  it('returns an intermediate colour for risk=0.25', () => {
-    const color = riskToColor(0.25);
-    // r = round(0.25 * 2 * 255) = round(127.5) = 128
-    expect(color).toBe('rgb(128, 255, 0)');
+  it('clamps invalid input', () => {
+    expect(riskHeatmapColor(NaN)).toMatch(/^hsl\(120,/);
+    expect(riskHeatmapColor(undefined)).toMatch(/^hsl\(120,/);
   });
 });

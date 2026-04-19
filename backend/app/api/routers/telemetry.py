@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from pydantic import ValidationError
 from app.schemas.mission import DroneRoute, PlanMissionResponse
 from app.services.mavlink_service import mavlink_service
+from app.services.mission_fusion_runtime import get_fusion_snapshot
 
 router = APIRouter(tags=["Telemetry"])
 
@@ -112,7 +113,11 @@ async def mavlink_telemetry_websocket(websocket: WebSocket, drone_id: int):
     await websocket.accept()
     try:
         async for frame in mavlink_service.read_telemetry_loop(drone_id):
-            await websocket.send_json(frame)
+            out = dict(frame)
+            fusion = get_fusion_snapshot(drone_id)
+            if fusion is not None:
+                out["fusion"] = fusion
+            await websocket.send_json(out)
             if frame.get("status") == "LOST":
                 # Notify frontend and close — caller should trigger replanner
                 await websocket.send_json({"event": "drone_lost", "drone_id": drone_id})

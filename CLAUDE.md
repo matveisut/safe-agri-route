@@ -56,6 +56,10 @@
 Находится в `/backend/app/api/routers/telemetry.py`.
 - Принимает по TCP WebSocket-каналу сгенерированный "План полета".
 - Начинает асинхронный `while` по фреймам (индексам маршрута). Каждые `0.1` сек отправляет координаты позиций дронов для создания иллюзии "Live Movement".
+- Для живого MAVLink: `GET WS /ws/telemetry/{drone_id}` — в JSON может быть поле **`fusion`** (оценка угрозы после цепочки признаков → `threat_fusion`).
+
+### 1.4 Эвристический контур §10 (опционально, поверх MVP)
+Модули в `/backend/app/services/`: **`telemetry_features.py`** (скользящие окна, GNSS/link/IMU-прокси по траектории/swarm), **`threat_fusion.py`**, **`mission_fusion_runtime.py`** (при пороге — круговая зона + `replanner`). Конфиг в **`app/core/config.py`**. Регистрация миссии для авто-replan: **`POST /api/v1/mission/{id}/fusion-context`**. На фронте: **`useLiveFusionSocket`**, состояние **`liveFusion`** в `useMissionStore`. Полная мультисенсорная модель из `diplom/ТЗ.md` §10 (SDR, бортовой IMU, ML) в код **не** входит.
 
 ---
 
@@ -77,8 +81,8 @@
 
 ### 2.3 Панель Оператора (`MissionPanel.tsx`)
 - Интерфейс управления.
-- Реализует интеграцию с бэкендом (через готовый инстанс Axios в `services/api.ts`).
-- Запускает процесс сокета вызывая метод `startSimulation()` из хука `hooks/useTelemetry.ts`.
+- Реализует интеграцию с бэкендом (через Axios в `services/api.ts`; `baseURL` из `config.ts` — тот же хост, что и у WebSocket fusion).
+- Запускает симуляцию телеметрии: `startSimulation()` в `hooks/useTelemetry.ts`; опционально блок **MAVLink · Fusion** и `useLiveFusionSocket`.
 
 ---
 

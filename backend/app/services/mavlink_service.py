@@ -17,7 +17,7 @@ import asyncio
 import logging
 import os
 import time
-from typing import AsyncGenerator, Dict, List, Any, Optional
+from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -455,8 +455,10 @@ class MAVLinkService:
         When SITL is unreachable the generator yields the last-known cached
         snapshot indefinitely (callers can detect STATUS_LOST and act).
         """
+        from app.services.mission_fusion_runtime import process_telemetry_fusion
+
         if self._simulation_mode or drone_id not in self.connections:
-            async for frame in self._simulated_telemetry(drone_id):
+            async for frame in self._simulated_telemetry(drone_id, process_telemetry_fusion):
                 yield frame
             return
 
@@ -478,10 +480,12 @@ class MAVLinkService:
                 )
                 frame["status"] = STATUS_LOST
                 self.telemetry[drone_id].update(frame)
+                await process_telemetry_fusion(drone_id, self)
                 yield frame
                 break  # stop generator; caller can trigger replanner
 
             self.telemetry[drone_id].update(frame)
+            await process_telemetry_fusion(drone_id, self)
             yield frame
             # _blocking_read_telemetry already spent ~200 ms collecting messages;
             # no additional sleep needed here.
@@ -539,7 +543,9 @@ class MAVLinkService:
     # ------------------------------------------------------------------
 
     async def _simulated_telemetry(
-        self, drone_id: int
+        self,
+        drone_id: int,
+        process_telemetry_fusion: Callable[[int, Any], Awaitable[None]],
     ) -> AsyncGenerator[Dict, None]:
         """
         Yield the cached snapshot at TELEMETRY_WINDOW intervals when no SITL
@@ -548,6 +554,7 @@ class MAVLinkService:
         while True:
             cached = dict(self.telemetry.get(drone_id, _empty_snapshot(drone_id)))
             cached.setdefault("status", STATUS_LOST)
+            await process_telemetry_fusion(drone_id, self)
             yield cached
             await asyncio.sleep(TELEMETRY_WINDOW)
 

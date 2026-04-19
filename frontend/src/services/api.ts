@@ -1,8 +1,10 @@
 import axios from 'axios';
 
-// Create base connection
+import { API_ORIGIN } from '../config';
+
+// Base URL совпадает с `config.ts` (hostname + опционально VITE_API_ORIGIN)
 const api = axios.create({
-  baseURL: 'http://localhost:8000/api/v1',
+  baseURL: `${API_ORIGIN}/api/v1`,
   timeout: 60000,
 });
 

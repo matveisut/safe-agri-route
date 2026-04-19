@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import { useMissionStore } from '../../store/useMissionStore';
 import { useTelemetry } from '../../hooks/useTelemetry';
+import { useLiveFusionSocket } from '../../hooks/useLiveFusionSocket';
 
 // ---------------------------------------------------------------------------
 // IRM progress bar
@@ -34,6 +35,29 @@ function IRMBar({ value }: { value: number }) {
 // Coverage progress bar
 // ---------------------------------------------------------------------------
 
+function ThreatFusionBar({ value }: { value: number }) {
+  const pct = Math.round(value * 100);
+  const color =
+    value < 0.35 ? 'bg-emerald-500' : value < 0.65 ? 'bg-amber-500' : 'bg-red-500';
+  const textColor =
+    value < 0.35 ? 'text-emerald-400' : value < 0.65 ? 'text-amber-300' : 'text-red-400';
+
+  return (
+    <div>
+      <div className="flex justify-between text-xs mb-1">
+        <span className="text-slate-400">Оценка угрозы (fusion)</span>
+        <span className={`font-bold ${textColor}`}>{pct}%</span>
+      </div>
+      <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${color}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function CoverageBar({ value }: { value: number }) {
   const pct = Math.min(100, Math.round(value));
   return (
@@ -58,6 +82,8 @@ function CoverageBar({ value }: { value: number }) {
 
 export default function MissionPanel() {
   const [isPlanning, setIsPlanning] = useState(false);
+  const [autoReplanNotice, setAutoReplanNotice] = useState(false);
+  const lastReplanEventRef = useRef(0);
 
   const ALL_DRONES = [
     { id: 1, name: 'AgriFly-1', cap: '5 Ah' },
@@ -76,15 +102,30 @@ export default function MissionPanel() {
     setRiskGridPreview,
     plannedRoutes,
     missionStats,
+    liveFusion,
+    setLiveFusion,
+    resetLiveFusion,
   } = useMissionStore();
 
   const { startSimulation, stopSimulation, isConnected } = useTelemetry();
+  useLiveFusionSocket();
 
   useEffect(() => {
     if (fields.length > 0 && !selectedFieldId) {
       setSelectedField(fields[0].id);
     }
   }, [fields]);
+
+  useEffect(() => {
+    const ev = liveFusion.lastAutoReplanEvent;
+    if (ev > lastReplanEventRef.current && ev > 0) {
+      lastReplanEventRef.current = ev;
+      setAutoReplanNotice(true);
+      const t = window.setTimeout(() => setAutoReplanNotice(false), 6500);
+      return () => clearTimeout(t);
+    }
+    lastReplanEventRef.current = ev;
+  }, [liveFusion.lastAutoReplanEvent]);
 
   const handlePlanRoute = async () => {
     if (!selectedFieldId) {
@@ -219,6 +260,67 @@ export default function MissionPanel() {
           >
             Stop Simulation
           </button>
+        )}
+      </div>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* MAVLink fusion (ТЗ §10) — опционально, без SITL не мешает демо        */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="bg-slate-900/80 p-5 rounded-2xl border border-slate-700/50 shadow-lg space-y-3">
+        <h2 className="font-bold text-xs tracking-widest text-slate-400 uppercase">
+          MAVLink · Fusion
+        </h2>
+        <label className="flex items-start gap-3 cursor-pointer group">
+          <input
+            type="checkbox"
+            className="mt-1 rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500"
+            checked={liveFusion.enabled}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setLiveFusion({
+                  enabled: true,
+                  droneId: selectedDroneIds[0] ?? 1,
+                });
+              } else {
+                lastReplanEventRef.current = 0;
+                resetLiveFusion();
+              }
+            }}
+          />
+          <span className="text-sm text-slate-300 leading-snug">
+            Подключить поток телеметрии и оценку угрозы (нужен бэкенд и SITL /
+            симуляция MAVLink)
+          </span>
+        </label>
+        {liveFusion.enabled && (
+          <div className="space-y-2 pl-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Дрон</span>
+              <select
+                className="bg-slate-800 text-slate-100 border border-slate-600 rounded-lg px-2 py-1 text-sm"
+                value={liveFusion.droneId ?? 1}
+                onChange={(e) =>
+                  setLiveFusion({ droneId: Number.parseInt(e.target.value, 10) })
+                }
+              >
+                {[1, 2, 3].map((id) => (
+                  <option key={id} value={id}>
+                    #{id}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {liveFusion.fusedThreatLevel != null ? (
+              <ThreatFusionBar value={liveFusion.fusedThreatLevel} />
+            ) : (
+              <p className="text-xs text-slate-500">Fusion: н/д (ожидание кадров…)</p>
+            )}
+            {autoReplanNotice && (
+              <p className="text-xs font-semibold text-amber-400 border border-amber-700/50 rounded-lg px-2 py-1.5 bg-amber-950/40">
+                Авто-риск: перепланирование выполнено
+              </p>
+            )}
+          </div>
         )}
       </div>
 

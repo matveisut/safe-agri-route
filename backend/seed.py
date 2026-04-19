@@ -68,6 +68,7 @@ async def seed_data():
             (lon - delta * 1.8, lat - delta * 0.2),
             (lon - delta * 2.0, lat - delta * 1.5)
         ])
+        # Labels are matched case-insensitively in risk_map (jammer / jamming / spoofing → RF REB)
         jamming_zone = RiskZone(
             type="Jamming",
             geometry=from_shape(jamming_shape, srid=4326),
@@ -75,7 +76,7 @@ async def seed_data():
         )
         session.add(jamming_zone)
         
-        # Risk Zone 2: Spoofing (Partially overlapping top-right edge)
+        # Second REB zone (legacy name "Spoofing" — same RF model as jammer in build_risk_map)
         spoofing_shape = Polygon([
             (lon + delta * 0.8, lat + delta * 0.5),
             (lon + delta * 3.0, lat + delta * 0.8),

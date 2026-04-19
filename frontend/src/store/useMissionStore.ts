@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import type { FusionBreakdown } from '../types/fusion';
+
 export interface RoutePoint {
   lat: number;
   lng: number;
@@ -43,6 +45,15 @@ export interface MissionStats {
 
 export type DroneStatus = 'active' | 'lost' | 'idle';
 
+/** Поток MAVLink + fusion (Промпт 12); без SITL поля остаются null / выкл. */
+export interface LiveFusionState {
+  enabled: boolean;
+  droneId: number | null;
+  fusedThreatLevel: number | null;
+  breakdown: FusionBreakdown | null;
+  lastAutoReplanEvent: number;
+}
+
 interface MissionState {
   fields: FieldType[];
   selectedFieldId: number | null;
@@ -61,6 +72,8 @@ interface MissionState {
   missionIsActive: boolean;
   droneStatuses: Record<number, DroneStatus>;
 
+  liveFusion: LiveFusionState;
+
   // Actions
   setFields: (fields: FieldType[]) => void;
   setSelectedField: (id: number) => void;
@@ -74,6 +87,9 @@ interface MissionState {
   setMissionActive: (active: boolean) => void;
   setDroneStatus: (droneId: number, status: DroneStatus) => void;
   resetDroneStatuses: () => void;
+
+  setLiveFusion: (patch: Partial<LiveFusionState>) => void;
+  resetLiveFusion: () => void;
 }
 
 export const useMissionStore = create<MissionState>((set) => ({
@@ -87,6 +103,14 @@ export const useMissionStore = create<MissionState>((set) => ({
   showRiskOverlay: false,
   missionIsActive: false,
   droneStatuses: {},
+
+  liveFusion: {
+    enabled: false,
+    droneId: null,
+    fusedThreatLevel: null,
+    breakdown: null,
+    lastAutoReplanEvent: 0,
+  },
 
   setFields: (fields) => set({ fields }),
 
@@ -130,4 +154,20 @@ export const useMissionStore = create<MissionState>((set) => ({
     })),
 
   resetDroneStatuses: () => set({ droneStatuses: {} }),
+
+  setLiveFusion: (patch) =>
+    set((state) => ({
+      liveFusion: { ...state.liveFusion, ...patch },
+    })),
+
+  resetLiveFusion: () =>
+    set({
+      liveFusion: {
+        enabled: false,
+        droneId: null,
+        fusedThreatLevel: null,
+        breakdown: null,
+        lastAutoReplanEvent: 0,
+      },
+    }),
 }));
