@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MapArea from './features/MapDashboard/MapArea';
 import MissionPanel from './features/MissionControl/MissionPanel';
 import DroneStatusPanel from './components/DroneStatusPanel';
@@ -6,6 +6,12 @@ import LoginPage from './components/LoginPage';
 
 function App() {
   const [authed, setAuthed] = useState(() => !!localStorage.getItem('access_token'));
+
+  useEffect(() => {
+    const handler = () => setAuthed(false);
+    window.addEventListener('auth:logout', handler);
+    return () => window.removeEventListener('auth:logout', handler);
+  }, []);
 
   if (!authed) {
     return <LoginPage onLogin={() => setAuthed(true)} />;

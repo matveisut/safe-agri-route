@@ -336,7 +336,7 @@ class TestSITLScript:
         assert os.access(SITL_SCRIPT, os.X_OK), \
             f"{SITL_SCRIPT} не исполняемый; выполните: chmod +x start_sitl_wsl.sh"
 
-    @pytest.mark.parametrize("port", [5760, 5770, 5780, 5790])
+    @pytest.mark.parametrize("port", [14550, 14560, 14570, 14580])
     def test_all_four_ports_present(self, port):
         assert str(port) in self.content, \
             f"Порт {port} не найден в start_sitl_wsl.sh"
@@ -361,13 +361,15 @@ class TestSITLScript:
         assert has_explicit_instances or has_loop, \
             "Скрипт не запускает 4 инстанса — не найдено явного перечисления или цикла"
 
-    def test_no_mavproxy_flag(self):
-        assert "--no-mavproxy" in self.content, \
-            "Флаг --no-mavproxy обязателен при прямом TCP-подключении без MAVProxy"
+    def test_mavproxy_with_screen(self):
+        assert "screen" in self.content, \
+            "sim_vehicle.py должен запускаться в screen-сессии — иначе MAVProxy падает без PTY"
+        assert "tcpin" in self.content, \
+            "MAVProxy должен слушать через tcpin (server mode) для подключения бэкенда"
 
-    def test_pid_file_reference(self):
-        assert "PID" in self.content or "pid" in self.content, \
-            "Скрипт не сохраняет PID-файл — нельзя будет корректно остановить инстансы"
+    def test_screen_stop_command(self):
+        assert "screen" in self.content and "quit" in self.content, \
+            "Скрипт должен управлять screen-сессиями (screen -X quit) вместо PID-файлов"
 
     def test_ardupilot_dir_variable(self):
         assert "ardupilot" in self.content.lower(), \

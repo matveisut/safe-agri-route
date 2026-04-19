@@ -77,29 +77,37 @@ Tools/environment_install/install-prereqs-ubuntu.sh -y
 source ~/.bashrc
 ```
 
-### Шаг 2: Запустить 4 SITL инстанса в WSL2
+### Шаг 2: Подготовить venv и запустить 4 SITL инстанса в WSL2
 
 ```bash
-# В терминале WSL2:
+# Однократно: создать venv с pymavlink/MAVProxy
+python3 -m venv ~/venv-ardupilot
+source ~/venv-ardupilot/bin/activate
+pip install pymavlink MAVProxy
+
+# Запустить SITL (4 инстанса в screen-сессиях):
 bash start_sitl_wsl.sh
 
-# Ждать сообщения "All 4 SITL instances running"
-# Порты: 14550, 14560, 14570, 14580
+# Подождать ~30 сек пока ArduCopter инициализируется, затем проверить порты:
+ss -tlnp | grep "1455"
+# Должны быть видны: 14550, 14560, 14570, 14580
 ```
 
-### Шаг 3: Запустить основной стек в Windows PowerShell
+> **Примечание:** каждый инстанс запускается через `sim_vehicle.py` в отдельной `screen`-сессии.
+> Просмотр: `screen -r sitl_0` (выход: Ctrl+A D).
+> Остановка: `screen -ls | grep sitl | awk '{print $1}' | xargs -I{} screen -S {} -X quit`
 
-```bash
-# Задаём SITL_HOSTS — адреса SITL в WSL2, видимые из Docker-контейнера
-# host.docker.internal резолвится в IP хост-машины (WSL2 виден через него)
-$env:SITL_HOSTS = "tcp:host.docker.internal:14550,tcp:host.docker.internal:14560,tcp:host.docker.internal:14570,tcp:host.docker.internal:14580"
-docker-compose up --build
-```
+### Шаг 3: Запустить основной стек
 
-Или создайте файл `.env` в корне проекта:
+Файл `.env` в корне проекта уже настроен:
 
 ```env
 SITL_HOSTS=tcp:host.docker.internal:14550,tcp:host.docker.internal:14560,tcp:host.docker.internal:14570,tcp:host.docker.internal:14580
+```
+
+```bash
+# PowerShell / bash:
+docker-compose up --build
 ```
 
 Проверить подключение к SITL:
@@ -208,7 +216,7 @@ curl -X POST http://localhost:8000/auth/login \
 
 | Проблема | Решение |
 |---|---|
-| Порты SITL не видны из Docker | Убедитесь что используете `host.docker.internal` вместо `127.0.0.1` в `SITL_HOSTS` |
+| Порты SITL не видны из Docker | Используйте `host.docker.internal` в `SITL_HOSTS`, порты 14550-14580 |
 | WSL2 и Docker конфликтуют | Перезапустите Docker Desktop после запуска WSL2 терминала |
 | `pymavlink` не устанавливается | Запускайте бэкенд в WSL2 напрямую, а не в Docker |
 | SITL не запускается в Docker | Используйте `start_sitl_wsl.sh` вместо `docker-compose.sitl.yml` |

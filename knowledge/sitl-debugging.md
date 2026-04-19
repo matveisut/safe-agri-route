@@ -11,27 +11,36 @@
 Ключевые настройки:
 ```bash
 export SITL_RITW_TERMINAL="bash"   # вместо xterm — работает без X11
-# --no-mavproxy: ArduCopter слушает напрямую на MAVLink-портах
-python Tools/autotest/sim_vehicle.py \
-    -v ArduCopter --instance N \
-    --no-mavproxy --no-rebuild --speedup=1 \
-    --custom-location="45.0448,41.9734,0,0"
+# sim_vehicle.py в screen-сессии: управляет arducopter + mavproxy вместе
+# --out tcpin: MAVProxy слушает на отдельном порту для бэкенда
+screen -S "sitl_N" -d -m bash -c "
+    source ~/venv-ardupilot/bin/activate
+    export SITL_RITW_TERMINAL=bash
+    cd ~/ardupilot
+    python Tools/autotest/sim_vehicle.py \
+        -v ArduCopter --instance N \
+        --custom-location='45.0448,41.9734,0,0' \
+        --out 'tcpin:0.0.0.0:PORT' \
+        --no-rebuild --speedup=1
+"
 ```
 
-**Порты:**
+**Порты MAVProxy tcpin (для бэкенда):**
 | Инстанс | Порт | Протокол |
 |---|---|---|
-| Дрон 0 | 5760 | tcp:127.0.0.1:5760 |
-| Дрон 1 | 5770 | tcp:127.0.0.1:5770 |
-| Дрон 2 | 5780 | tcp:127.0.0.1:5780 |
-| Дрон 3 | 5790 | tcp:127.0.0.1:5790 |
+| Дрон 0 | 14550 | tcp:0.0.0.0:14550 |
+| Дрон 1 | 14560 | tcp:0.0.0.0:14560 |
+| Дрон 2 | 14570 | tcp:0.0.0.0:14570 |
+| Дрон 3 | 14580 | tcp:0.0.0.0:14580 |
 
 **`.env` для Docker-бэкенда:**
 ```
-SITL_HOSTS=tcp:host.docker.internal:5760,tcp:host.docker.internal:5770,tcp:host.docker.internal:5780,tcp:host.docker.internal:5790
+SITL_HOSTS=tcp:host.docker.internal:14550,tcp:host.docker.internal:14560,tcp:host.docker.internal:14570,tcp:host.docker.internal:14580
 ```
 
 **Виртуальное окружение:** `~/venv-ardupilot` (содержит mavproxy, pymavlink, sim_vehicle.py зависимости).
+
+**Просмотр инстанса:** `screen -r sitl_0` (выход: Ctrl+A D)
 
 ---
 

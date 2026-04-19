@@ -28,6 +28,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error("API Error occurred: ", error.response?.data || error.message);
+    if (error.response?.status === 401) {
+      localStorage.removeItem('access_token');
+      window.dispatchEvent(new Event('auth:logout'));
+    }
     return Promise.reject(error);
   }
 );
