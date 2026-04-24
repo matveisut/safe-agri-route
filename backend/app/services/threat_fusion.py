@@ -18,10 +18,11 @@ from app.core.config import (
     FUSION_WEIGHT_GNSS,
     FUSION_WEIGHT_IMU,
     FUSION_WEIGHT_LINK,
+    FUSION_WEIGHT_PLR,
     FUSION_WEIGHT_SWARM,
 )
 
-_SCORE_KEYS = ("gnss", "link", "imu_proxy", "swarm")
+_SCORE_KEYS = ("gnss", "link", "imu_proxy", "swarm", "plr")
 
 # Сглаженное значение по ``drone_id`` (процесс в памяти)
 _smoothed_threat: Dict[int, float] = {}
@@ -40,11 +41,17 @@ def _clamp01(x: float) -> float:
     return max(0.0, min(1.0, x))
 
 
-def _normalize_weights(wg: float, wl: float, wi: float, ws: float) -> Tuple[float, float, float, float]:
-    s = wg + wl + wi + ws
+def _normalize_weights(
+    wg: float,
+    wl: float,
+    wi: float,
+    ws: float,
+    wp: float,
+) -> Tuple[float, float, float, float, float]:
+    s = wg + wl + wi + ws + wp
     if s <= 0:
-        return 0.25, 0.25, 0.25, 0.25
-    return wg / s, wl / s, wi / s, ws / s
+        return 0.2, 0.2, 0.2, 0.2, 0.2
+    return wg / s, wl / s, wi / s, ws / s, wp / s
 
 
 def fuse_threat_scores(
@@ -58,7 +65,7 @@ def fuse_threat_scores(
     Parameters
     ----------
     scores
-        Ключи: ``gnss``, ``link``, ``imu_proxy``, ``swarm`` — значения ∈ [0, 1]
+        Ключи: ``gnss``, ``link``, ``imu_proxy``, ``swarm``, ``plr`` — значения ∈ [0, 1]
         (стабильность). Отсутствующие ключи считаются 1.0 (нет сигнала опасности).
     drone_id
         Идентификатор для независимого EMA по дронам.
@@ -82,21 +89,23 @@ def fuse_threat_scores(
 
     any_low = any(raw[k] < FUSION_FEATURE_LOW_THRESHOLD for k in _SCORE_KEYS)
 
-    wg, wl, wi, ws = (
+    wg, wl, wi, ws, wp = (
         FUSION_WEIGHT_GNSS,
         FUSION_WEIGHT_LINK,
         FUSION_WEIGHT_IMU,
         FUSION_WEIGHT_SWARM,
+        FUSION_WEIGHT_PLR,
     )
     if any_low:
         wg *= 1.0 + FUSION_GNSS_BOOST
-    wg, wl, wi, ws = _normalize_weights(wg, wl, wi, ws)
+    wg, wl, wi, ws, wp = _normalize_weights(wg, wl, wi, ws, wp)
 
     fused_raw = (
         wg * peril["gnss"]
         + wl * peril["link"]
         + wi * peril["imu_proxy"]
         + ws * peril["swarm"]
+        + wp * peril["plr"]
     )
     fused_raw = _clamp01(fused_raw)
 
@@ -109,7 +118,7 @@ def fuse_threat_scores(
     breakdown: Dict[str, Any] = {
         "raw_scores": raw,
         "peril": peril,
-        "weights": {"gnss": wg, "link": wl, "imu_proxy": wi, "swarm": ws},
+        "weights": {"gnss": wg, "link": wl, "imu_proxy": wi, "swarm": ws, "plr": wp},
         "fused_raw": fused_raw,
         "fused_threat_level": smoothed,
         "any_feature_low": any_low,

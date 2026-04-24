@@ -48,6 +48,8 @@ class TelemetrySnapshot:
     eph_m: Optional[float] = None
     epv_m: Optional[float] = None
     rssi_dbm: Optional[float] = None
+    packet_total: Optional[int] = None
+    packet_lost: Optional[int] = None
 
 
 Buffers = Dict[int, Deque[TelemetrySnapshot]]
@@ -127,6 +129,8 @@ def _snapshot_from_flat(flat: Mapping[str, Any]) -> TelemetrySnapshot:
         epv_m = epv_m / 1000.0
     rssi = flat.get("rssi")
     rssi_dbm = _coerce_float(rssi) if rssi is not None else None
+    packet_total = _coerce_int(flat.get("packet_total"))
+    packet_lost = _coerce_int(flat.get("packet_lost"))
 
     return TelemetrySnapshot(
         t_sec=t_sec,
@@ -141,6 +145,8 @@ def _snapshot_from_flat(flat: Mapping[str, Any]) -> TelemetrySnapshot:
         eph_m=eph_m,
         epv_m=epv_m,
         rssi_dbm=rssi_dbm,
+        packet_total=packet_total,
+        packet_lost=packet_lost,
     )
 
 
@@ -283,6 +289,47 @@ def compute_imu_proxy_score(drone_id: int) -> float:
 
     penalty = min(1.0, jerk_mag_max / _IMU_JERK_THRESH)
     return float(max(0.0, min(1.0, 1.0 - penalty)))
+
+
+def compute_packet_loss_score(drone_id: int) -> float:
+    """
+    Оценка потерь пакетов PLR ∈ [0, 1], где 1 = высокий уровень потерь.
+
+    Формула при наличии счётчиков:
+        plr = lost_packets / max(total_packets, 1)
+
+    Если счётчики в кадрах отсутствуют, используется детерминированная оценка по
+    пропускам интервалов телеметрии (ожидаемая частота ~5 Гц для 200мс окна).
+    """
+    buf = _buffers.get(drone_id)
+    if not buf:
+        return 0.0
+
+    samples = list(buf)
+    last = samples[-1]
+    if last.packet_total is not None and last.packet_lost is not None and last.packet_total > 0:
+        plr = float(last.packet_lost) / float(max(1, last.packet_total))
+        return float(max(0.0, min(1.0, plr)))
+
+    if len(samples) < 3:
+        return 0.0
+
+    dts = [max(1e-4, b.t_sec - a.t_sec) for a, b in zip(samples[:-1], samples[1:])]
+    baseline = sorted(dts)[len(dts) // 2]
+    baseline = max(0.05, min(1.0, baseline))
+
+    total_expected = 0.0
+    total_lost = 0.0
+    for dt in dts:
+        expected = max(1.0, dt / baseline)
+        lost = max(0.0, expected - 1.0)
+        total_expected += expected
+        total_lost += lost
+
+    if total_expected <= 1e-6:
+        return 0.0
+    plr = total_lost / total_expected
+    return float(max(0.0, min(1.0, plr)))
 
 
 def get_swarm_outlier_score(

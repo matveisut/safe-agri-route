@@ -132,3 +132,78 @@ def test_without_context_no_replan(clean_runtime):
             rp.assert_not_called()
 
     asyncio.run(_run())
+
+
+def test_confirmed_flow_calls_safety_then_replan_then_update(clean_runtime):
+    async def _run():
+        routes = [_route(1), _route(2)]
+        ctx = FusionMissionContext(
+            mission_id=77,
+            field_id=7,
+            field_polygon=FIELD,
+            drones=[_drone(1), _drone(2)],
+            risk_zones=[],
+            current_routes=routes,
+            visited_counts={1: 0, 2: 0},
+        )
+        set_fusion_context(ctx)
+
+        events: list[str] = []
+
+        class Svc:
+            telemetry = {
+                1: {"lat": 0.05, "lng": 0.05, "drone_id": 1, "groundspeed": 0.0},
+                2: {"lat": 0.05, "lng": 0.06, "drone_id": 2, "groundspeed": 0.0},
+            }
+
+            async def apply_safety_action(self, *_a, **_k):
+                events.append("safety")
+                return True
+
+            async def update_mission(self, *_a, **_k):
+                events.append("update")
+                return True
+
+            async def set_auto_mode(self, *_a, **_k):
+                events.append("auto")
+                return True
+
+        svc = Svc()
+
+        def _fake_fuse(_scores, drone_id=0):
+            return (0.95, {"fused_threat_level": 0.95})
+
+        with patch(
+            "app.services.mission_fusion_runtime.replan_on_new_risk_zone",
+            new_callable=AsyncMock,
+        ) as rp:
+            async def _rp(*_a, **_k):
+                events.append("replan")
+                return {
+                    "status": "replanned",
+                    "updated_routes": [r.model_dump() for r in routes],
+                    "new_irm": 0.85,
+                }
+
+            rp.side_effect = _rp
+            with patch(
+                "app.services.mission_fusion_runtime.fuse_threat_scores",
+                side_effect=_fake_fuse,
+            ):
+                with patch("app.services.mission_fusion_runtime.FUSION_DETECTOR_ALPHA", 1.0):
+                    with patch("app.services.mission_fusion_runtime.FUSION_DETECTOR_CONFIRM_STREAK", 1):
+                        with patch("app.services.mission_fusion_runtime.FUSION_AUTO_REPLAN_STREAK", 1):
+                            with patch("app.services.mission_fusion_runtime.FUSION_THRESHOLD", 0.5):
+                                with patch(
+                                    "app.services.mission_fusion_runtime.ENABLE_SAFETY_ACTION_BEFORE_REPLAN",
+                                    True,
+                                ):
+                                    await process_telemetry_fusion(1, svc)
+
+        assert "safety" in events
+        assert "replan" in events
+        assert events.index("safety") < events.index("replan")
+        assert "update" in events
+        assert "auto" in events
+
+    asyncio.run(_run())

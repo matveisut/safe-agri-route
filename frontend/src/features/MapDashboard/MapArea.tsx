@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Polygon, Polyline, CircleMarker } from 'react-leaflet';
+import { MapContainer, TileLayer, Polygon, Polyline, CircleMarker, Circle, Popup } from 'react-leaflet';
 import api from '../../services/api';
 import { useMissionStore, RiskZoneType } from '../../store/useMissionStore';
 import DrawControl, { DrawMode } from '../../components/DrawControl';
 import RiskOverlay from '../../components/RiskOverlay';
+import type { DynamicJammerZone } from '../../types/fusion';
 
 // ---------------------------------------------------------------------------
 // Risk-zone configuration modal (shown after polygon is drawn)
@@ -139,6 +140,9 @@ export default function MapArea() {
     missionIsActive,
     selectedFieldId,
     selectedDroneIds,
+    dynamicJammerZones,
+    suspectedDrawMode,
+    setSuspectedDrawMode,
   } = useMissionStore();
 
   // Alias used for replanning payload (same reference, separate name for clarity)
@@ -223,9 +227,28 @@ export default function MapArea() {
     }
   };
 
+  const handleSaveSuspectedZone = async () => {
+    if (!pendingGeojson) return;
+    setIsSaving(true);
+    try {
+      await api.post('/risk-zones/suspected', {
+        geometry: JSON.parse(pendingGeojson),
+        source: 'operator',
+      });
+      setPendingGeojson(null);
+      setSuspectedDrawMode(false);
+    } catch (err) {
+      console.error('Failed to save suspected zone', err);
+      alert('Failed to save suspected zone. Check backend logs.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleCancelDraw = () => {
     setPendingGeojson(null);
     setDrawMode(null);
+    setSuspectedDrawMode(false);
   };
 
   // -------------------------------------------------------------------------
@@ -237,6 +260,31 @@ export default function MapArea() {
     setLastDrawMode(mode);
     setDrawMode(mode);
     setPendingGeojson(null);
+  };
+
+  useEffect(() => {
+    if (suspectedDrawMode) {
+      setLastDrawMode('suspected-zone');
+      setDrawMode('suspected-zone');
+    } else if (drawMode === 'suspected-zone') {
+      setDrawMode(null);
+    }
+  }, [suspectedDrawMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const dynamicZoneStyle = (zone: DynamicJammerZone) => {
+    if (zone.state === 'fading') {
+      const ttl = zone.expires_in_sec ?? 0;
+      const fade = Math.max(0.05, Math.min(0.25, ttl / 60));
+      return { color: '#f97316', fillColor: '#f97316', fillOpacity: fade, weight: 2, dashArray: '6 6' };
+    }
+    const isSuspected =
+      zone.zone_type === 'suspected_jammer' ||
+      zone.state === 'DRAWN' ||
+      zone.state === 'OBSERVING';
+    if (isSuspected) {
+      return { color: '#f59e0b', fillColor: '#f59e0b', fillOpacity: 0.15, weight: 2, dashArray: '6 6' };
+    }
+    return { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.35, weight: 2 };
   };
 
   // -------------------------------------------------------------------------
@@ -325,6 +373,44 @@ export default function MapArea() {
         {/* Risk Heat-map overlay */}
         <RiskOverlay />
 
+        {/* Dynamic zones from unified mission stream */}
+        {dynamicJammerZones.map((zone) => {
+          const style = dynamicZoneStyle(zone);
+          const popup = (
+            <Popup>
+              <div className="text-xs">
+                <div><strong>{zone.zone_type}</strong></div>
+                <div>state: {zone.state}</div>
+                <div>confidence: {zone.confidence?.toFixed(2) ?? 'n/a'}</div>
+                <div>ttl: {zone.expires_in_sec != null ? `${Math.round(zone.expires_in_sec)}s` : 'n/a'}</div>
+              </div>
+            </Popup>
+          );
+
+          if (zone.geometry?.type === 'Polygon') {
+            const poly = zone.geometry as any;
+            const positions = poly.coordinates[0].map((c: number[]) => [c[1], c[0]]) as [number, number][];
+            return (
+              <Polygon key={`dyn-${zone.zone_id}`} positions={positions} pathOptions={style}>
+                {popup}
+              </Polygon>
+            );
+          }
+          if (zone.center && zone.radius_m) {
+            return (
+              <Circle
+                key={`dyn-${zone.zone_id}`}
+                center={[zone.center.lat, zone.center.lng]}
+                radius={zone.radius_m}
+                pathOptions={style}
+              >
+                {popup}
+              </Circle>
+            );
+          }
+          return null;
+        })}
+
         {/* Draw polygon handler (activates when drawMode is non-null) */}
         <DrawControl mode={drawMode} onPolygonComplete={handlePolygonComplete} />
       </MapContainer>
@@ -406,6 +492,31 @@ export default function MapArea() {
           onCancel={handleCancelDraw}
           isSaving={isSaving}
         />
+      )}
+      {pendingGeojson && lastDrawMode === 'suspected-zone' && (
+        <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-slate-800 border border-slate-600 rounded-2xl p-6 w-80 shadow-2xl text-white">
+            <h3 className="font-bold text-lg mb-4 text-amber-400">Create suspected jammer zone</h3>
+            <p className="text-sm text-slate-300 mb-5">
+              Отправить выделенную область как suspected_jammer?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={handleCancelDraw}
+                className="flex-1 bg-slate-700 hover:bg-slate-600 rounded-xl py-2 text-sm transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveSuspectedZone}
+                disabled={isSaving}
+                className="flex-1 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 rounded-xl py-2 text-sm font-semibold transition-colors"
+              >
+                {isSaving ? 'Saving…' : 'Save suspected'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

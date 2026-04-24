@@ -1,5 +1,7 @@
 # Тестирование — SafeAgriRoute
 
+> Актуализация 22.04.2026: добавлены тесты для `PLR` в fusion и packet-loss simulation (поверх unified mission WS, runtime zones и controlled replan).
+
 Описание тестовой структуры: что покрывают тесты, как запускать, маркеры.
 
 ---
@@ -139,9 +141,11 @@ pytest -m stack
 
 **`TestSimulateDroneLoss`** — удаляет из connections, статус `LOST`, идемпотентен.
 
+**`TestPacketLossSimulation`** — включение/выключение packet-loss simulation, корректность состояния (`enabled`, `drop_rate`, `burst_len`).
+
 **`TestUploadMission`** — False без подключения; happy path: mission_count_send вызван; timeout → False.
 
-**`TestStartMission`** — 4 команды (GUIDED, ARM, TAKEOFF, AUTO); ARM rejected → False.
+**`TestStartMission`** — 5 команд (GUIDED, ARM, TAKEOFF, AUTO, MISSION_START); ARM rejected → False.
 
 **`TestUpdateMission`** — CLEAR → upload → START; `mission_clear_all_send` вызван.
 
@@ -203,3 +207,11 @@ pytest -m stack
 | SITL-тесты скипаются | SITL не запущен. `bash start_sitl_wsl.sh` или дождаться компиляции |
 | stack-тесты скипаются | `docker-compose up -d` + `docker exec backend python seed.py` |
 | frontend-тесты скипаются | `cd frontend && bash node_modules/.bin/vite --host 0.0.0.0 --port 3000 &` |
+
+---
+
+## Что проверено для 21–22
+
+- `test_threat_fusion.py`: высокий `PLR` повышает fused threat при прочих равных.
+- `test_telemetry_features.py`: `compute_packet_loss_score()` работает по счётчикам и fallback по time-gaps.
+- `test_mavlink_service.py`: packet-loss simulation API состояния (`set/stop/get`) корректна.

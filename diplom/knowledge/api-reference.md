@@ -10,6 +10,31 @@ Authorization: Bearer <access_token>
 
 ---
 
+## Актуализация 22.04.2026 (каноничные пути)
+
+Ниже в документе встречаются исторические описания legacy-WS и старых сценариев.  
+Каноничный контракт текущего репозитория:
+
+- REST prefix: **`/api/v1/mission/*`** и **`/api/v1/risk-zones/*`**
+- Единый WS mission stream: **`/ws/telemetry/mission`**
+- Legacy WS (поддерживаются как thin-wrapper): `/ws/telemetry`, `/ws/telemetry/{drone_id}`
+
+Ключевые endpoints:
+
+- `POST /api/v1/mission/plan`
+- `POST /api/v1/mission/{id}/start`
+- `POST /api/v1/mission/{id}/fusion-context`
+- `POST /api/v1/mission/{id}/simulate-loss`
+- `POST /api/v1/mission/{id}/risk-zones`
+- `POST /api/v1/mission/{id}/packet-loss/simulate`
+- `POST /api/v1/mission/{id}/packet-loss/stop`
+- `GET /api/v1/mission/{id}/packet-loss/state?drone_id=N`
+- `POST /api/v1/risk-zones/suspected`
+- `PATCH /api/v1/risk-zones/{zone_id}/state`
+- `WS /ws/telemetry/mission` (основной mission stream)
+
+---
+
 ## Аутентификация (`/auth`)
 
 ### POST /auth/login
@@ -324,7 +349,38 @@ username=operator@safegriroute.com&password=operator123
 
 ## WebSocket телеметрия
 
-### WS /ws/telemetry
+### WS /ws/telemetry/mission
+
+Основной единый mission stream (`simulation` / `live`).
+
+**Handshake (client -> server):**
+```json
+{
+  "protocol": "v1",
+  "mode": "simulation",
+  "routes": [],
+  "irm": 0.82
+}
+```
+
+**Frame (server -> client):**
+```json
+{
+  "protocol": "v1",
+  "source": "live",
+  "telemetry": [],
+  "fusion_by_drone": {},
+  "dynamic_zones": [],
+  "irm_update": 0.82,
+  "message": null
+}
+```
+
+`fusion_by_drone[*]` расширен полем `packet_loss_rate` (0..1), которое отражает текущий PLR и используется в вычислении `jam_prob` вместе с остальными признаками.
+
+---
+
+### WS /ws/telemetry (legacy)
 
 Симуляция телеметрии по маршрутным точкам (без реального MAVLink).
 
@@ -357,7 +413,7 @@ username=operator@safegriroute.com&password=operator123
 
 ---
 
-### WS /ws/telemetry/{drone_id}
+### WS /ws/telemetry/{drone_id} (legacy)
 
 Реальная MAVLink телеметрия от SITL или физического дрона.
 
@@ -374,8 +430,9 @@ username=operator@safegriroute.com&password=operator123
   "groundspeed": 12.3,
   "fusion": {
     "fused_threat_level": 0.42,
+    "packet_loss_rate": 0.18,
     "breakdown": {
-      "raw_scores": { "gnss": 0.95, "link": 0.9, "imu_proxy": 0.88, "swarm": 1.0 },
+      "raw_scores": { "gnss": 0.95, "link": 0.9, "imu_proxy": 0.88, "swarm": 1.0, "plr": 0.82 },
       "peril": {},
       "weights": {},
       "fused_raw": 0.35,
@@ -409,8 +466,9 @@ username=operator@safegriroute.com&password=operator123
 | `/mission/{id}/fusion-context` | POST | operator |
 | `/mission/{id}/simulate-loss` | POST | operator |
 | `/mission/{id}/risk-zones` | POST | operator |
-| `/ws/telemetry` | WS | — |
-| `/ws/telemetry/{id}` | WS | — |
+| `/ws/telemetry/mission` | WS | — |
+| `/ws/telemetry` (legacy) | WS | — |
+| `/ws/telemetry/{id}` (legacy) | WS | — |
 
 ---
 
@@ -443,4 +501,4 @@ username=operator@safegriroute.com&password=operator123
 
 ## Особенности WebSocket авторизации
 
-WebSocket-эндпоинты (`/ws/telemetry`, `/ws/telemetry/{id}`) **не защищены JWT** на уровне FastAPI. Токен не передаётся в WS-соединении. Это намеренное упрощение для MVP — в продакшене нужна либо передача токена через query-param, либо cookie-based auth.
+WebSocket-эндпоинты (`/ws/telemetry/mission` + legacy) **не защищены JWT** на уровне FastAPI. Токен не передаётся в WS-соединении. Это намеренное упрощение для MVP — в продакшене нужна либо передача токена через query-param, либо cookie-based auth.

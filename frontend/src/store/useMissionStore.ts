@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import type { FusionBreakdown } from '../types/fusion';
+import type { DynamicJammerZone, FusionBreakdown, FusionSnapshot } from '../types/fusion';
 
 export interface RoutePoint {
   lat: number;
@@ -54,6 +54,8 @@ export interface LiveFusionState {
   lastAutoReplanEvent: number;
 }
 
+export type FusionByDrone = Record<number, FusionSnapshot>;
+
 interface MissionState {
   fields: FieldType[];
   selectedFieldId: number | null;
@@ -73,6 +75,11 @@ interface MissionState {
   droneStatuses: Record<number, DroneStatus>;
 
   liveFusion: LiveFusionState;
+  fusionByDrone: FusionByDrone;
+  dynamicJammerZones: DynamicJammerZone[];
+  missionTelemetryMode: 'simulation' | 'live';
+  suspectedDrawMode: boolean;
+  missionId: number;
 
   // Actions
   setFields: (fields: FieldType[]) => void;
@@ -90,6 +97,11 @@ interface MissionState {
 
   setLiveFusion: (patch: Partial<LiveFusionState>) => void;
   resetLiveFusion: () => void;
+  setFusionByDrone: (fusion: FusionByDrone) => void;
+  setDynamicJammerZones: (zones: DynamicJammerZone[]) => void;
+  setMissionTelemetryMode: (mode: 'simulation' | 'live') => void;
+  setSuspectedDrawMode: (enabled: boolean) => void;
+  setMissionId: (missionId: number) => void;
 }
 
 export const useMissionStore = create<MissionState>((set) => ({
@@ -111,6 +123,11 @@ export const useMissionStore = create<MissionState>((set) => ({
     breakdown: null,
     lastAutoReplanEvent: 0,
   },
+  fusionByDrone: {},
+  dynamicJammerZones: [],
+  missionTelemetryMode: 'simulation',
+  suspectedDrawMode: false,
+  missionId: 1,
 
   setFields: (fields) => set({ fields }),
 
@@ -170,4 +187,10 @@ export const useMissionStore = create<MissionState>((set) => ({
         lastAutoReplanEvent: 0,
       },
     }),
+
+  setFusionByDrone: (fusion) => set({ fusionByDrone: fusion }),
+  setDynamicJammerZones: (zones) => set({ dynamicJammerZones: zones }),
+  setMissionTelemetryMode: (mode) => set({ missionTelemetryMode: mode }),
+  setSuspectedDrawMode: (enabled) => set({ suspectedDrawMode: enabled }),
+  setMissionId: (missionId) => set({ missionId }),
 }));

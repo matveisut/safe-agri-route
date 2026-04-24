@@ -6,11 +6,11 @@
 
 ---
 
-## Согласование с репозиторием `safe-agri-route` и документами `ТЗ.md` / `План обдуманный.md` (актуализация 19.04.2026)
+## Согласование с репозиторием `safe-agri-route` и документами `ТЗ.md` / `План обдуманный.md` (актуализация 22.04.2026)
 
 Ниже — **фактическое состояние**, чтобы дорожная карта не противоречила коду и ТЗ.
 
-**Уже реализовано в коде (MVP):** FastAPI; PostGIS; модули `risk_map.py`, `routing_service.py` (Risk-Weighted Voronoi + OR-Tools), `replanner.py`, `mavlink_service.py`; REST под префиксом **`/api/v1/mission/...`** (планирование, поля, зоны, старт, перепланирование, **`POST .../fusion-context`** для авто-replan по fusion); JWT (`/auth/login` и защита эндпоинтов); WebSocket **`/ws/telemetry`** и **`/ws/telemetry/{id}`** (в т.ч. поле **`fusion`** на живом MAVLink); слой **`telemetry_features.py`**, **`threat_fusion.py`**, **`mission_fusion_runtime.py`** (ТЗ §10, эвристики); фронтенд (React/Vite, Leaflet, RiskOverlay, IRM, панель fusion в `MissionPanel`); `docker-compose` (+ `docker-compose.sitl.yml`).
+**Уже реализовано в коде (MVP):** FastAPI; PostGIS; модули `risk_map.py`, `routing_service.py` (Risk-Weighted Voronoi + OR-Tools), `replanner.py`, `mavlink_service.py`; REST под префиксом **`/api/v1/mission/...`** + `risk-zones/suspected` + packet-loss API; JWT (`/auth/login` и защита эндпоинтов); основной WebSocket **`/ws/telemetry/mission`** (единый stream: simulation/live, fusion, dynamic_zones) + legacy wrappers; слой **`telemetry_features.py`**, **`threat_fusion.py`**, **`mission_fusion_runtime.py`** (state machine, hysteresis, dynamic/suspected zones, controlled replan, `PLR` в `jam_prob`); фронтенд (React/Vite, единый stream hook, Leaflet, IRM/fusion UI, suspected draw mode, packet-loss controls); `docker-compose` (+ `docker-compose.sitl.yml`).
 
 **Вне объёма текущего кода / перспектива ТЗ:** Gazebo, ROS2 как обязательный стек; отдельный TLS/mTLS MAVLink-proxy и HMAC команд — для защиты достаточно **JWT + pymavlink**; полноценный audit log API — опционально; **полная** постановка §10 с отдельными драйверами **SDR**, «железным» IMU и обучаемым fusion — не реализована; в репозитории — **упрощённый** контур по MAVLink-телеметрии и правилам из `Промпты.md` 9–12.
 
@@ -171,7 +171,7 @@
 | Риск | Вероятность / Влияние | Мера реагирования |
 | :--- | :---: | :--- |
 | Задержка интеграции frontend + backend | Низкая / Среднее | Стек уже связан в `safe-agri-route`; при регрессах — точечная отладка по сценариям ТЗ |
-| Нестабильность ArduPilot SITL / pymavlink в среде Windows+Docker | Средняя / Среднее | Для защиты достаточно демо по ТЗ: симуляция телеметрии по маршруту (`/ws/telemetry`) и/или автономная Python-симуляция §1.5; SITL — по возможности |
+| Нестабильность ArduPilot SITL / pymavlink в среде Windows+Docker | Средняя / Среднее | Для защиты достаточно демо по ТЗ: unified stream в режиме simulation (`/ws/telemetry/mission`) и/или автономная Python-симуляция §1.5; SITL — по возможности |
 | Длительное рассмотрение заявок Роспатент | Низкая / Среднее | Подача заявок не позднее Н7; наличие квитанции о подаче достаточно для защиты |
 | Замечания на предзащите требуют переработки | Средняя / Высокое | Буфер 2 недели (Н11–Н12) на доработку; еженедельные консультации с Н1 |
 | Недостаточный % оригинальности в Антиплагиат | Низкая / Высокое | Самопроверка на Н8; переработка заимствований до предзащиты |
@@ -191,4 +191,4 @@
 
 ---
 
-_Дорожная карта синхронизирована с `ТЗ.md` v1.3, `План обдуманный.md` v1.2 и репозиторием `safe-agri-route` (обновление: 19.04.2026 — учтены модули §10 / промпты 9–12). Задание на ВКР — `zadanie_vkrs.md`._
+_Дорожная карта синхронизирована с `ТЗ.md` v1.3, `План обдуманный.md` v1.2 и репозиторием `safe-agri-route` (обновление: 22.04.2026 — учтены промпты 21–22: `PLR` + packet-loss simulation). Задание на ВКР — `zadanie_vkrs.md`._

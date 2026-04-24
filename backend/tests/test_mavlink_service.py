@@ -264,6 +264,26 @@ class TestSimulateDroneLoss:
         asyncio.run(svc.simulate_drone_loss(99))
 
 
+class TestPacketLossSimulation:
+    def test_enable_and_disable_packet_loss_simulation(self):
+        from app.services.mavlink_service import MAVLinkService
+
+        svc = MAVLinkService()
+        enabled = svc.set_packet_loss_simulation(
+            drone_id=1,
+            drop_rate=0.4,
+            burst_len=2,
+            duration_sec=10,
+            seed=123,
+        )
+        assert enabled["enabled"] is True
+        assert enabled["drop_rate"] == pytest.approx(0.4)
+        assert enabled["burst_len"] == 2
+
+        disabled = svc.stop_packet_loss_simulation(1)
+        assert disabled["enabled"] is False
+
+
 # ---------------------------------------------------------------------------
 # Unit tests: upload_mission
 # ---------------------------------------------------------------------------
@@ -347,8 +367,8 @@ class TestStartMission:
             result = asyncio.run(svc.start_mission(1))
 
         assert result is True
-        # 4 commands: SET_MODE(GUIDED), ARM, TAKEOFF, SET_MODE(AUTO)
-        assert conn_mock.mav.command_long_send.call_count == 4
+        # 5 commands: SET_MODE(GUIDED), ARM, TAKEOFF, SET_MODE(AUTO), MISSION_START
+        assert conn_mock.mav.command_long_send.call_count == 5
 
     def test_returns_false_when_arm_rejected(self):
         """If ARM command is rejected the sequence aborts and returns False."""
@@ -409,6 +429,34 @@ class TestUpdateMission:
         assert result is True
         conn_mock.mav.mission_clear_all_send.assert_called_once()
         conn_mock.mav.command_long_send.assert_called_once()  # MISSION_START
+
+
+class TestSafetyActions:
+    def test_apply_safety_action_loiter_happy_path(self):
+        from app.services.mavlink_service import MAVLinkService
+
+        mu_mock, conn_mock = _make_mavutil_mock()
+        svc = MAVLinkService()
+        svc._mavutil = mu_mock
+        svc.connections[1] = conn_mock
+        conn_mock.recv_match.return_value = _make_command_ack(accepted=True)
+
+        result = asyncio.run(svc.apply_safety_action(1, "LOITER"))
+        assert result is True
+        conn_mock.mav.command_long_send.assert_called_once()
+
+    def test_set_auto_mode_happy_path(self):
+        from app.services.mavlink_service import MAVLinkService
+
+        mu_mock, conn_mock = _make_mavutil_mock()
+        svc = MAVLinkService()
+        svc._mavutil = mu_mock
+        svc.connections[1] = conn_mock
+        conn_mock.recv_match.return_value = _make_command_ack(accepted=True)
+
+        result = asyncio.run(svc.set_auto_mode(1))
+        assert result is True
+        conn_mock.mav.command_long_send.assert_called_once()
 
 
 # ---------------------------------------------------------------------------

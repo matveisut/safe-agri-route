@@ -1,23 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import { useMissionStore } from '../store/useMissionStore';
+import { useMissionTelemetryStream } from './useMissionTelemetryStream';
 
+/**
+ * Deprecated thin-wrapper over `useMissionTelemetryStream` for backward compatibility.
+ */
 export function useTelemetry() {
-  const wsRef = useRef<WebSocket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-
-  const {
-    updateTelemetry,
-    updateMissionIRM,
-    setMissionActive,
-    setDroneStatus,
-    resetDroneStatuses,
-  } = useMissionStore();
-
-  useEffect(() => {
-    return () => {
-      wsRef.current?.close();
-    };
-  }, []);
+  const plannedRoutes = useMissionStore((s) => s.plannedRoutes);
+  const { start, stop, isConnected } = useMissionTelemetryStream(
+    'simulation',
+    plannedRoutes,
+  );
 
   /**
    * Open the telemetry WebSocket and start the flight simulation.
@@ -26,78 +19,14 @@ export function useTelemetry() {
    *             can carry an `irm_update` field — satisfying the requirement
    *             that IRM updates propagate through WebSocket frames.
    */
-  const startSimulation = (irm?: number) => {
-    const routes = useMissionStore.getState().plannedRoutes;
+  const api = useMemo(
+    () => ({
+      startSimulation: (irm?: number) => start(irm),
+      stopSimulation: stop,
+      isConnected,
+    }),
+    [isConnected, start, stop],
+  );
 
-    if (!routes || routes.length === 0) {
-      alert('No planned routes available. Please generate a route first.');
-      return;
-    }
-
-    wsRef.current?.close();
-
-    const ws = new WebSocket('ws://localhost:8000/ws/telemetry');
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      console.log('Telemetry WebSocket connected.');
-      setIsConnected(true);
-      setMissionActive(true);
-
-      // Mark all mission drones as active at start
-      routes.forEach((r) => setDroneStatus(r.drone_id, 'active'));
-
-      // Include irm so the server echoes it back in the first frame as irm_update
-      const payload: Record<string, unknown> = { routes };
-      if (irm !== undefined) payload.irm = irm;
-      ws.send(JSON.stringify(payload));
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-
-        // irm_update arrives in the first frame (and after replanning restarts)
-        if (data.irm_update != null) {
-          updateMissionIRM(data.irm_update);
-        }
-
-        if (data.message) {
-          console.log('Server message:', data.message);
-          if (data.message === 'Mission Completed') {
-            setIsConnected(false);
-            setMissionActive(false);
-          }
-          return;
-        }
-
-        if (data.telemetry) {
-          data.telemetry.forEach((t: { drone_id: number; lat: number; lng: number; status: string }) => {
-            updateTelemetry(t.drone_id, { lat: t.lat, lng: t.lng });
-          });
-        }
-      } catch (err) {
-        console.error('Error parsing telemetry data:', err);
-      }
-    };
-
-    ws.onclose = () => {
-      console.log('Telemetry WebSocket closed.');
-      setIsConnected(false);
-    };
-
-    ws.onerror = (err) => {
-      console.error('Telemetry WebSocket error:', err);
-      setIsConnected(false);
-    };
-  };
-
-  const stopSimulation = () => {
-    wsRef.current?.close();
-    setIsConnected(false);
-    setMissionActive(false);
-    resetDroneStatuses();
-  };
-
-  return { startSimulation, stopSimulation, isConnected };
+  return api;
 }

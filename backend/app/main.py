@@ -45,6 +45,7 @@ app.add_middleware(
 # Include Routers
 app.include_router(auth_router)                    # /auth/login, /auth/register
 app.include_router(mission.router, prefix="/api/v1")
+app.include_router(mission.risk_zones_router, prefix="/api/v1")
 app.include_router(telemetry.router)               # WebSocket /ws/...
 
 

@@ -13,8 +13,8 @@
 │                  ──►  POST .../fusion-context (опц. §10) │
 │  MapArea       ◄──  GET  /api/v1/mission/fields          │
 │                  ◄──  GET  /api/v1/mission/risk-zones    │
-│  useTelemetry  ◄──  WS   /ws/telemetry (симуляция)      │
-│  useLiveFusionSocket ◄── WS /ws/telemetry/{id} + fusion │
+│  useMissionTelemetryStream ◄── WS /ws/telemetry/mission │
+│  (legacy wrappers: /ws/telemetry, /ws/telemetry/{id})   │
 └───────────────────────────┬─────────────────────────────┘
                             │ HTTP / WebSocket
                             ▼
@@ -23,7 +23,8 @@
 │                                                          │
 │  /auth/*          JWT auth (login / register)           │
 │  /api/v1/mission  plan, fields, risk-zones, start, replan, fusion-context│
-│  /ws/telemetry*   телеметрия; fusion — в /ws/telemetry/{id}              │
+│  /ws/telemetry/mission единый stream (simulation/live/fusion/zones)       │
+│  /ws/telemetry* legacy wrappers                                            │
 │  telemetry_features / threat_fusion / mission_fusion_runtime (§10)     │
 │                                                          │
 │  ┌──────────────┐  ┌─────────────────┐  ┌─────────────┐  │
@@ -55,11 +56,12 @@
 
 | Этап | Файлы / смысл |
 |------|----------------|
-| Признаки из MAVLink | `telemetry_features.py` — скользящие окна, эвристики GNSS / канала / IMU-прокси / роя |
-| Слияние | `threat_fusion.py` + `app/core/config.py` — взвешенная «угроза», EMA |
-| Интеграция | `mission_fusion_runtime.py` — при пороге и debounce: круговая зона jammer → `replan_on_new_risk_zone`; опционально регистрация миссии через **`POST /api/v1/mission/{id}/fusion-context`** |
-| Транспорт в UI | `WS /ws/telemetry/{id}` — в JSON добавляется объект **`fusion`** (`fused_threat_level`, `breakdown`, `auto_replan_event_id`) |
-| Фронтенд | `useLiveFusionSocket`, состояние `liveFusion` в `useMissionStore`, блок в `MissionPanel` |
+| Признаки из MAVLink | `telemetry_features.py` — скользящие окна, эвристики GNSS / канала / IMU-прокси / роя + `PLR` (Packet Loss Rate) |
+| Слияние | `threat_fusion.py` + `app/core/config.py` — взвешенная «угроза», EMA, вес `FUSION_WEIGHT_PLR` |
+| Интеграция | `mission_fusion_runtime.py` — state machine + dynamic zones + controlled replan; регистрация миссии через **`POST /api/v1/mission/{id}/fusion-context`** |
+| Симуляция потерь пакетов | `mavlink_service.py` + `mission.py` — `POST /api/v1/mission/{id}/packet-loss/simulate`, `POST .../packet-loss/stop`, `GET .../packet-loss/state` |
+| Транспорт в UI | **`WS /ws/telemetry/mission`** — `fusion_by_drone`, `dynamic_zones`, `irm_update`, `message` |
+| Фронтенд | `useMissionTelemetryStream` + thin-wrapper `useLiveFusionSocket`, состояние `fusionByDrone`/`dynamicJammerZones`/`liveFusion` |
 
 **Перспектива (полная §10):** отдельные потоки IMU/GNSS-приёмника, SDR, внешние ГИС-слои — в ТЗ как расширение; в коде **не** реализованы.
 
@@ -248,8 +250,9 @@ simulate_drone_loss():
 
 | Эндпоинт | Описание |
 |---|---|
-| `WS /ws/telemetry` | Симуляция: принимает planned routes, шагает по точкам каждые 100 мс |
-| `WS /ws/telemetry/{drone_id}` | Реальная MAVLink телеметрия через `read_telemetry_loop()`, 200 мс |
+| `WS /ws/telemetry/mission` | Основной единый mission stream (simulation/live, `fusion_by_drone`, `dynamic_zones`, `irm_update`) |
+| `WS /ws/telemetry` | Legacy simulation wrapper |
+| `WS /ws/telemetry/{drone_id}` | Legacy single-drone live wrapper |
 
 При `status=LOST` WebSocket отправляет `{"event": "drone_lost", "drone_id": N}` и закрывает соединение — сигнал для фронтенда запустить replanner.
 
@@ -334,7 +337,7 @@ safe-agri-route/
 │   │   │   └── routers/
 │   │   │       ├── auth.py          # POST /auth/login, /auth/register
 │   │   │       ├── mission.py       # /mission/* (plan, start, simulate-loss, risk-zones)
-│   │   │       └── telemetry.py     # WS /ws/telemetry, /ws/telemetry/{id}
+│   │   │       └── telemetry.py     # WS /ws/telemetry/mission + legacy wrappers
 │   │   ├── core/
 │   │   │   └── security.py          # hash_password, verify_password, JWT encode/decode
 │   │   ├── models/                  # SQLAlchemy: Field, RiskZone, Drone, User

@@ -1,5 +1,7 @@
 # Развёртывание — SafeAgriRoute
 
+> Актуализация 22.04.2026: дополнительно поддержан runtime packet-loss simulation и `PLR` в fusion (`jam_prob`).
+
 Инструкция по запуску стека: локально, Docker, SITL (WSL2 и Docker).
 
 ---
@@ -21,7 +23,7 @@ docker exec safe_agri_route_backend python seed.py
 #   Swagger:   http://localhost:8000/docs
 ```
 
-Режим симуляции: телеметрия воспроизводится по waypoints через `/ws/telemetry` (без MAVLink).
+Режим симуляции: телеметрия воспроизводится через unified stream `/ws/telemetry/mission` (`mode=simulation`, без MAVLink).
 
 ---
 
@@ -33,6 +35,7 @@ docker exec safe_agri_route_backend python seed.py
 | `SECRET_KEY` | backend | JWT signing key | `supersecretkey` (сменить в проде) |
 | `SITL_HOSTS` | backend | Список TCP-адресов SITL | `""` (simulation mode) |
 | `FUSION_THRESHOLD`, `FUSION_SMOOTH_ALPHA`, `FUSION_WEIGHT_*` | backend | Параметры fusion (§10), см. `app/core/config.py` | см. код / `.env` |
+| `FUSION_WEIGHT_PLR` | backend | Вес признака PLR в fusion | `0.20` (до нормализации) |
 | `FUSION_AUTO_REPLAN_STREAK`, `FUSION_AUTO_REPLAN_MIN_INTERVAL_SEC`, `FUSION_AUTO_ZONE_RADIUS_M` | backend | Авто-replan по fusion | см. код |
 | `VITE_API_URL` | frontend | Base URL бэкенда | `http://localhost:8000` |
 | `VITE_WS_ORIGIN` / `VITE_API_ORIGIN` | frontend | Опционально: WS/HTTP для fusion UI | по умолчанию `localhost:8000` |
@@ -175,6 +178,26 @@ docker network connect safe-agri-route_safagri_net safe_agri_route_db
 docker exec safe_agri_route_backend nc -zv sitl-1 14550
 # Проверить лог SITL
 docker logs safe_agri_route_sitl_1
+```
+
+### Проверка packet-loss simulation
+
+```bash
+# Включить для дрона 1
+curl -X POST http://localhost:8000/api/v1/mission/1/packet-loss/simulate \
+  -H "Authorization: Bearer <OPERATOR_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"drone_id":1,"drop_rate":0.35,"burst_len":2,"duration_sec":30,"seed":42}'
+
+# Проверить состояние
+curl -H "Authorization: Bearer <TOKEN>" \
+  "http://localhost:8000/api/v1/mission/1/packet-loss/state?drone_id=1"
+
+# Выключить
+curl -X POST http://localhost:8000/api/v1/mission/1/packet-loss/stop \
+  -H "Authorization: Bearer <OPERATOR_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"drone_id":1}'
 ```
 
 ### Пересоздание БД

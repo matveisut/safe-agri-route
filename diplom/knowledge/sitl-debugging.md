@@ -1,5 +1,7 @@
 # SITL — Отладка и выводы
 
+> Актуализация 22.04.2026: для mission UI используется unified stream `/ws/telemetry/mission`; single-drone `/ws/telemetry/{drone_id}` сохранён как legacy/debug канал; в runtime добавлена packet-loss simulation для проверки PLR.
+
 Документирует проблемы, найденные при настройке ArduPilot SITL для SafeAgriRoute, и их решения.
 
 ---
@@ -217,4 +219,10 @@ docker-compose logs backend | grep -i "sitl\|mavlink\|connect\|simulation"
 
 ## 8. Связь с fusion (§10)
 
-При работающем SITL и подключении фронтенда к **`WS /ws/telemetry/{drone_id}`** в кадрах может приходить объект **`fusion`** (оценка угрозы и отладочный `breakdown`). Предварительно для авто-replan миссии нужно вызвать **`POST /api/v1/mission/{id}/fusion-context`**. Подробности — [`architecture.md`](architecture.md), [`api-reference.md`](api-reference.md).
+Дополнение по состоянию 22.04.2026:
+- в `jam_prob` добавлен признак `PLR` (Packet Loss Rate);
+- packet-loss simulation позволяет воспроизводимо поднимать `packet_loss_rate` для live/sim потоков;
+- ожидаемая цепочка в логах: рост `packet_loss_rate` -> рост `jam_prob` -> `SUSPECT/CONFIRMED` -> controlled replan (по порогам и rate-limit).
+
+При работающем SITL основной канал фронтенда — **`WS /ws/telemetry/mission`** (в кадрах `fusion_by_drone`, `dynamic_zones`, `irm_update`).  
+Single-drone **`WS /ws/telemetry/{drone_id}`** используется как legacy/debug. Для авто-replan миссии предварительно вызывается **`POST /api/v1/mission/{id}/fusion-context`**. Подробности — [`architecture.md`](architecture.md), [`api-reference.md`](api-reference.md).

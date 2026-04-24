@@ -1,5 +1,7 @@
 # Модели данных — SafeAgriRoute
 
+> Актуализация 22.04.2026: в frontend-store добавлены сущности `fusionByDrone`, `dynamicJammerZones`, `missionId`, `missionTelemetryMode`, `suspectedDrawMode`; дополнительно введены packet-loss модели и поля `packet_loss_rate` в telemetry/fusion payload.
+
 Описание PostgreSQL-схемы, SQLAlchemy-моделей и Pydantic-схем.
 
 ---
@@ -174,6 +176,16 @@ class CreateRiskZoneRequest(BaseModel):
     zone_type: str       # "jammer" | "restricted"
     severity_weight: float
     geojson: str
+
+class PacketLossSimulateRequest(BaseModel):
+    drone_id: int
+    drop_rate: float
+    burst_len: int = 1
+    duration_sec: Optional[float] = None
+    seed: Optional[int] = None
+
+class PacketLossStopRequest(BaseModel):
+    drone_id: int
 ```
 
 ### Ответы
@@ -195,6 +207,10 @@ class ReplanResponse(BaseModel):
     updated_routes: List[DroneRoute]
     new_irm: float
 ```
+
+Дополнение по runtime-полям:
+- telemetry кадры содержат `packet_total`, `packet_lost`, `packet_loss_rate` при активной симуляции потерь;
+- fusion snapshot содержит `packet_loss_rate` (используется как вклад в `jam_prob`).
 
 ---
 

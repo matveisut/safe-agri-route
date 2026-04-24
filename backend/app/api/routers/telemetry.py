@@ -1,10 +1,13 @@
 import asyncio
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from pydantic import ValidationError
 from app.schemas.mission import DroneRoute, PlanMissionResponse
 from app.services.mavlink_service import mavlink_service
-from app.services.mission_fusion_runtime import get_fusion_snapshot
+from app.services.mission_fusion_runtime import (
+    get_dynamic_zones_snapshot,
+    get_fusion_snapshot,
+)
 
 router = APIRouter(tags=["Telemetry"])
 
@@ -13,9 +16,98 @@ class TelemetryStartPayload(BaseModel):
     routes: list[DroneRoute]
     irm: float | None = None   # initial IRM forwarded from /plan; echoed back in first frame
 
+
+class MissionTelemetryStartPayload(BaseModel):
+    protocol: str = "v1"
+    mode: str = "simulation"  # simulation | live
+    routes: list[DroneRoute] = Field(default_factory=list)
+    irm: float | None = None
+
+
+def _build_sim_frame(
+    routes: list[DroneRoute],
+    step_idx: int,
+    initial_irm: float | None = None,
+) -> dict:
+    telemetry: list[dict] = []
+    for dr in routes:
+        if not dr.route:
+            telemetry.append(
+                {
+                    "drone_id": dr.drone_id,
+                    "lat": 0.0,
+                    "lng": 0.0,
+                    "status": "idle",
+                }
+            )
+            continue
+        if step_idx < len(dr.route):
+            pt = dr.route[step_idx]
+            telemetry.append(
+                {
+                    "drone_id": dr.drone_id,
+                    "lat": pt.lat,
+                    "lng": pt.lng,
+                    "status": "in_flight",
+                }
+            )
+        else:
+            pt = dr.route[-1]
+            telemetry.append(
+                {
+                    "drone_id": dr.drone_id,
+                    "lat": pt.lat,
+                    "lng": pt.lng,
+                    "status": "idle",
+                }
+            )
+
+    frame: dict = {
+        "protocol": "v1",
+        "source": "simulation",
+        "telemetry": telemetry,
+        "fusion_by_drone": {},
+        "dynamic_zones": [],
+        "message": None,
+    }
+    if step_idx == 0 and initial_irm is not None:
+        frame["irm_update"] = initial_irm
+    return frame
+
+
+def _build_live_frame(
+    telemetry: list[dict],
+    fusion_by_drone: dict,
+    dynamic_zones: list[dict] | None = None,
+    initial_irm: float | None = None,
+    include_irm: bool = False,
+) -> dict:
+    frame: dict = {
+        "protocol": "v1",
+        "source": "live",
+        "telemetry": telemetry,
+        "fusion_by_drone": fusion_by_drone,
+        "dynamic_zones": dynamic_zones or [],
+        "message": None,
+    }
+    if include_irm and initial_irm is not None:
+        frame["irm_update"] = initial_irm
+    return frame
+
+
+def _extract_drone_ids_for_live(payload: MissionTelemetryStartPayload) -> list[int]:
+    route_ids = [dr.drone_id for dr in payload.routes]
+    cache_ids = list(mavlink_service.telemetry.keys())
+    host_ids = list(getattr(mavlink_service, "_hosts", {}).keys())
+    ids = sorted(set(route_ids + cache_ids + host_ids))
+    return ids or [1]
+
+
 @router.websocket("/ws/telemetry")
 async def telemetry_websocket(websocket: WebSocket):
     """
+    Deprecated thin-wrapper for simulation telemetry.
+
     Simulates drone telemetry based on pre-planned routes.
     Expects client to send the PlanMissionResponse (List of DroneRoute).
     It then streams coordinates for each drone back to client.
@@ -88,9 +180,104 @@ async def telemetry_websocket(websocket: WebSocket):
         print(f"Error in telemetry websocket: {e}")
 
 
+@router.websocket("/ws/telemetry/mission")
+async def mission_telemetry_stream(websocket: WebSocket):
+    """
+    Unified mission telemetry stream for both simulation and live modes.
+
+    Expected handshake payload:
+    {
+        "protocol": "v1",
+        "mode": "simulation" | "live",
+        "routes": [...],
+        "irm": <float optional>
+    }
+    """
+    await websocket.accept()
+    try:
+        data = await websocket.receive_json()
+        payload = MissionTelemetryStartPayload(**data)
+        if payload.protocol != "v1":
+            await websocket.send_json({"error": "Unsupported protocol"})
+            return
+        if payload.mode not in {"simulation", "live"}:
+            await websocket.send_json({"error": "Invalid mode"})
+            return
+
+        if payload.mode == "simulation":
+            if not payload.routes:
+                await websocket.send_json({"error": "Simulation mode requires routes"})
+                return
+            max_points = max([len(dr.route) for dr in payload.routes], default=0)
+            for step_idx in range(max_points):
+                frame = _build_sim_frame(payload.routes, step_idx, payload.irm)
+                await websocket.send_json(frame)
+                await asyncio.sleep(0.1)
+            await websocket.send_json(
+                {
+                    "protocol": "v1",
+                    "source": "simulation",
+                    "telemetry": [],
+                    "fusion_by_drone": {},
+                    "dynamic_zones": [],
+                    "message": "Mission Completed",
+                }
+            )
+            return
+
+        drone_ids = _extract_drone_ids_for_live(payload)
+        generators = {did: mavlink_service.read_telemetry_loop(did) for did in drone_ids}
+        sent_first_frame = False
+
+        while True:
+            telemetry: list[dict] = []
+            for did, gen in generators.items():
+                try:
+                    frame = await anext(gen)
+                except StopAsyncIteration:
+                    frame = {
+                        "drone_id": did,
+                        "lat": 0.0,
+                        "lng": 0.0,
+                        "alt": 0.0,
+                        "battery": 0,
+                        "heading": 0,
+                        "status": "LOST",
+                        "groundspeed": 0.0,
+                    }
+                telemetry.append(frame)
+
+            fusion_by_drone: dict[str, dict] = {}
+            for item in telemetry:
+                did = int(item["drone_id"])
+                fusion = get_fusion_snapshot(did)
+                if fusion is not None:
+                    fusion_by_drone[str(did)] = fusion
+
+            out = _build_live_frame(
+                telemetry=telemetry,
+                fusion_by_drone=fusion_by_drone,
+                dynamic_zones=get_dynamic_zones_snapshot(),
+                initial_irm=payload.irm,
+                include_irm=not sent_first_frame,
+            )
+            await websocket.send_json(out)
+            sent_first_frame = True
+            await asyncio.sleep(0.2)
+
+    except WebSocketDisconnect:
+        pass
+    except ValidationError:
+        await websocket.send_json({"error": "Invalid mission telemetry handshake"})
+    except Exception as exc:
+        print(f"Mission telemetry WS error: {exc}")
+
+
 @router.websocket("/ws/telemetry/{drone_id}")
 async def mavlink_telemetry_websocket(websocket: WebSocket, drone_id: int):
     """
+    Deprecated thin-wrapper for single-drone live telemetry.
+
     Streams live MAVLink telemetry for a single drone every ~200 ms.
 
     When SITL is connected the frames contain real GPS/battery data from

@@ -9,16 +9,24 @@ from app.schemas.mission import (
     SimulateLossRequest, AddRiskZoneRequest, ReplanResponse,
     StartMissionRequest, StartMissionResponse,
     CreateFieldRequest, CreateRiskZoneRequest,
+    CreateSuspectedRiskZoneRequest, UpdateRiskZoneStateRequest,
+    PacketLossSimulateRequest, PacketLossStopRequest,
 )
 
 from app.services.routing_service import RoutingService
 from app.services.replanner import replan_on_drone_loss, replan_on_new_risk_zone
 from app.services.mavlink_service import mavlink_service
-from app.services.mission_fusion_runtime import FusionMissionContext, set_fusion_context
+from app.services.mission_fusion_runtime import (
+    FusionMissionContext,
+    add_manual_suspected_zone,
+    set_fusion_context,
+    update_zone_state,
+)
 from app.api.deps import require_operator, require_viewer
 from app.models.user import User
 
 router = APIRouter(prefix="/mission", tags=["Mission"])
+risk_zones_router = APIRouter(prefix="/risk-zones", tags=["RiskZones"])
 
 @router.post("/plan", response_model=PlanMissionResponse)
 async def plan_mission(
@@ -356,3 +364,92 @@ async def add_risk_zone_during_mission(
         updated_routes=updated,
         new_irm=result["new_irm"],
     )
+
+
+@risk_zones_router.post("/suspected")
+async def create_suspected_zone(
+    request: CreateSuspectedRiskZoneRequest,
+    _: User = Depends(require_operator),
+):
+    """
+    Создаёт ручную suspected jammer зону в runtime-контуре mission stream.
+    """
+    if request.source != "operator":
+        raise HTTPException(status_code=400, detail="source must be 'operator'")
+    try:
+        created = add_manual_suspected_zone(
+            geometry=request.geometry,
+            source=request.source,
+            ttl_sec=request.ttl_sec,
+            note=request.note,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Invalid geometry: {exc}")
+    return {
+        "status": "created",
+        "zone_id": created["zone_id"],
+        "state": created["state"],
+    }
+
+
+@risk_zones_router.patch("/{zone_id}/state")
+async def patch_zone_state(
+    zone_id: str,
+    request: UpdateRiskZoneStateRequest,
+    _: User = Depends(require_operator),
+):
+    """
+    Меняет состояние runtime-зоны (DRAWN/OBSERVING/CONFIRMED/REJECTED/EXPIRED).
+    """
+    allowed = {"DRAWN", "OBSERVING", "CONFIRMED", "REJECTED", "EXPIRED"}
+    if request.state not in allowed:
+        raise HTTPException(status_code=400, detail="Invalid state value")
+    updated = update_zone_state(zone_id=zone_id, state=request.state)
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Zone not found")
+    return {"status": "updated", **updated}
+
+
+@router.post("/{mission_id}/packet-loss/simulate")
+async def simulate_packet_loss(
+    mission_id: int,
+    request: PacketLossSimulateRequest,
+    _: User = Depends(require_operator),
+):
+    del mission_id
+    if request.drop_rate < 0.0 or request.drop_rate > 1.0:
+        raise HTTPException(status_code=400, detail="drop_rate must be in [0,1]")
+    if request.burst_len < 1:
+        raise HTTPException(status_code=400, detail="burst_len must be >= 1")
+    if request.duration_sec is not None and request.duration_sec <= 0:
+        raise HTTPException(status_code=400, detail="duration_sec must be > 0")
+
+    state = mavlink_service.set_packet_loss_simulation(
+        drone_id=request.drone_id,
+        drop_rate=request.drop_rate,
+        burst_len=request.burst_len,
+        duration_sec=request.duration_sec,
+        seed=request.seed,
+    )
+    return {"status": "enabled", **state}
+
+
+@router.post("/{mission_id}/packet-loss/stop")
+async def stop_packet_loss(
+    mission_id: int,
+    request: PacketLossStopRequest,
+    _: User = Depends(require_operator),
+):
+    del mission_id
+    state = mavlink_service.stop_packet_loss_simulation(request.drone_id)
+    return {"status": "disabled", **state}
+
+
+@router.get("/{mission_id}/packet-loss/state")
+async def get_packet_loss_state(
+    mission_id: int,
+    drone_id: int = Query(..., description="Drone ID"),
+    _: User = Depends(require_viewer),
+):
+    del mission_id
+    return mavlink_service.get_packet_loss_simulation_state(drone_id)

@@ -16,6 +16,7 @@ drone_id=1 → first address, drone_id=2 → second, etc.
 import asyncio
 import logging
 import os
+import random
 import time
 from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, Optional
 
@@ -24,6 +25,8 @@ logger = logging.getLogger(__name__)
 # ArduCopter custom mode numbers
 COPTER_MODE_GUIDED = 4
 COPTER_MODE_AUTO = 3
+COPTER_MODE_RTL = 6
+COPTER_MODE_LOITER = 5
 
 # Timing
 HEARTBEAT_TIMEOUT = 5.0   # seconds until drone is declared LOST
@@ -74,6 +77,8 @@ class MAVLinkService:
         self.telemetry: Dict[int, Dict] = {}
         self._mavutil: Optional[Any] = None       # lazy import of pymavlink.mavutil
         self._simulation_mode: bool = False        # True when pymavlink absent / no SITL
+        # drone_id -> packet-loss simulation policy/state
+        self._packet_loss_sim: Dict[int, Dict[str, Any]] = {}
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -323,10 +328,17 @@ class MAVLinkService:
     def _blocking_start_mission(self, conn, drone_id: int) -> bool:
         mu = self._mavutil
         mav = mu.mavlink
+        cmd_names = {
+            mav.MAV_CMD_DO_SET_MODE: "MAV_CMD_DO_SET_MODE",
+            mav.MAV_CMD_COMPONENT_ARM_DISARM: "MAV_CMD_COMPONENT_ARM_DISARM",
+            mav.MAV_CMD_NAV_TAKEOFF: "MAV_CMD_NAV_TAKEOFF",
+            mav.MAV_CMD_MISSION_START: "MAV_CMD_MISSION_START",
+        }
 
         def _cmd(command: int, *params) -> bool:
             """Send COMMAND_LONG and wait for COMMAND_ACK."""
             p = list(params) + [0.0] * (7 - len(params))
+            cmd_name = cmd_names.get(command, str(command))
             conn.mav.command_long_send(
                 conn.target_system,
                 conn.target_component,
@@ -337,13 +349,22 @@ class MAVLinkService:
             ack = conn.recv_match(type="COMMAND_ACK", blocking=True, timeout=5.0)
             if ack is None:
                 logger.warning(
-                    "MAVLink: no COMMAND_ACK for cmd=%d (drone %d)", command, drone_id
+                    "MAVLink: no COMMAND_ACK for %s (drone %d, params=%s)",
+                    cmd_name,
+                    drone_id,
+                    [round(float(x), 3) for x in p],
                 )
                 return False
             if ack.result != mav.MAV_RESULT_ACCEPTED:
+                result_entry = mu.mavlink.enums.get("MAV_RESULT", {}).get(int(ack.result))
+                result_name = result_entry.name if result_entry else str(int(ack.result))
                 logger.warning(
-                    "MAVLink: cmd=%d rejected result=%d (drone %d)",
-                    command, ack.result, drone_id,
+                    "MAVLink: %s rejected result=%s (%d) (drone %d, params=%s)",
+                    cmd_name,
+                    result_name,
+                    int(ack.result),
+                    drone_id,
+                    [round(float(x), 3) for x in p],
                 )
                 return False
             return True
@@ -360,12 +381,17 @@ class MAVLinkService:
         if not _cmd(mav.MAV_CMD_COMPONENT_ARM_DISARM, 1):
             return False
 
-        # 3. Takeoff to 30 m
-        if not _cmd(mav.MAV_CMD_NAV_TAKEOFF, 0, 0, 0, 0, 0, 0, 30.0):
-            return False
-
-        # Give SITL a moment to reach altitude before switching to AUTO
-        time.sleep(2.0)
+        # 3. Try explicit takeoff to 30 m.
+        # Some SITL profiles reject NAV_TAKEOFF even when mission start is possible.
+        takeoff_ok = _cmd(mav.MAV_CMD_NAV_TAKEOFF, 0, 0, 0, 0, 0, 0, 30.0)
+        if takeoff_ok:
+            # Give SITL a moment to climb before AUTO/mission_start.
+            time.sleep(2.0)
+        else:
+            logger.warning(
+                "MAVLink: drone %d TAKEOFF rejected, attempting AUTO+MISSION_START fallback",
+                drone_id,
+            )
 
         # 4. AUTO mode
         if not _cmd(
@@ -373,6 +399,12 @@ class MAVLinkService:
             mav.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
             COPTER_MODE_AUTO,
         ):
+            return False
+
+        # 5. Explicitly start mission in AUTO mode.
+        # This is required by some SITL stacks and also works as a safe fallback
+        # when NAV_TAKEOFF is rejected.
+        if not _cmd(mav.MAV_CMD_MISSION_START, 0, 0, 0, 0, 0, 0, 0):
             return False
 
         logger.info("MAVLink: drone %d armed and started", drone_id)
@@ -438,6 +470,99 @@ class MAVLinkService:
             logger.warning("MAVLink: drone %d MISSION_START failed", drone_id)
         return ok
 
+    async def apply_safety_action(self, drone_id: int, action: str) -> bool:
+        """
+        Apply safety action before controlled replan.
+
+        Supported actions:
+        - LOITER: switch to LOITER mode
+        - RTL: switch to RTL mode
+        """
+        conn = self.connections.get(drone_id)
+        if conn is None:
+            logger.warning(
+                "MAVLink: apply_safety_action — drone %d not connected", drone_id
+            )
+            return False
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, self._blocking_apply_safety_action, conn, drone_id, action
+        )
+
+    def _blocking_apply_safety_action(self, conn, drone_id: int, action: str) -> bool:
+        mu = self._mavutil
+        mav = mu.mavlink
+        action_up = (action or "").upper()
+        mode_map = {"LOITER": COPTER_MODE_LOITER, "RTL": COPTER_MODE_RTL}
+        mode = mode_map.get(action_up)
+        if mode is None:
+            logger.warning(
+                "MAVLink: unsupported safety action '%s' for drone %d",
+                action_up,
+                drone_id,
+            )
+            return False
+
+        conn.mav.command_long_send(
+            conn.target_system,
+            conn.target_component,
+            mav.MAV_CMD_DO_SET_MODE,
+            0,
+            float(mav.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED),
+            float(mode),
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        )
+        ack = conn.recv_match(type="COMMAND_ACK", blocking=True, timeout=3.0)
+        ok = ack is not None and ack.result == mav.MAV_RESULT_ACCEPTED
+        if ok:
+            logger.info(
+                "MAVLink: safety_action=%s applied to drone %d", action_up, drone_id
+            )
+        else:
+            logger.warning(
+                "MAVLink: safety_action=%s failed for drone %d", action_up, drone_id
+            )
+        return ok
+
+    async def set_auto_mode(self, drone_id: int) -> bool:
+        """Switch drone back to AUTO mode after mission update."""
+        conn = self.connections.get(drone_id)
+        if conn is None:
+            logger.warning("MAVLink: set_auto_mode — drone %d not connected", drone_id)
+            return False
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, self._blocking_set_auto_mode, conn, drone_id
+        )
+
+    def _blocking_set_auto_mode(self, conn, drone_id: int) -> bool:
+        mu = self._mavutil
+        mav = mu.mavlink
+        conn.mav.command_long_send(
+            conn.target_system,
+            conn.target_component,
+            mav.MAV_CMD_DO_SET_MODE,
+            0,
+            float(mav.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED),
+            float(COPTER_MODE_AUTO),
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        )
+        ack = conn.recv_match(type="COMMAND_ACK", blocking=True, timeout=3.0)
+        ok = ack is not None and ack.result == mav.MAV_RESULT_ACCEPTED
+        if ok:
+            logger.info("MAVLink: drone %d switched to AUTO", drone_id)
+        else:
+            logger.warning("MAVLink: failed to switch drone %d to AUTO", drone_id)
+        return ok
+
     # ------------------------------------------------------------------
     # Telemetry streaming
     # ------------------------------------------------------------------
@@ -467,9 +592,15 @@ class MAVLinkService:
         last_heartbeat_ts = time.monotonic()
 
         while True:
+            if self._should_drop_packet(drone_id):
+                self._update_packet_counters(drone_id, dropped=True)
+                continue
+
             frame = await loop.run_in_executor(
                 None, self._blocking_read_telemetry, conn, drone_id
             )
+            self._update_packet_counters(drone_id, dropped=False)
+            self._attach_packet_metrics(drone_id, frame)
 
             if frame.pop("_heartbeat", False):
                 last_heartbeat_ts = time.monotonic()
@@ -552,8 +683,14 @@ class MAVLinkService:
         connection exists.  Status is always STATUS_LOST in this path.
         """
         while True:
+            if self._should_drop_packet(drone_id):
+                self._update_packet_counters(drone_id, dropped=True)
+                await asyncio.sleep(TELEMETRY_WINDOW)
+                continue
             cached = dict(self.telemetry.get(drone_id, _empty_snapshot(drone_id)))
             cached.setdefault("status", STATUS_LOST)
+            self._update_packet_counters(drone_id, dropped=False)
+            self._attach_packet_metrics(drone_id, cached)
             await process_telemetry_fusion(drone_id, self)
             yield cached
             await asyncio.sleep(TELEMETRY_WINDOW)
@@ -572,6 +709,112 @@ class MAVLinkService:
         if drone_id in self.telemetry:
             self.telemetry[drone_id]["status"] = STATUS_LOST
         logger.info("MAVLink: drone %d manually marked as LOST (demo)", drone_id)
+
+    # ------------------------------------------------------------------
+    # Packet-loss simulation controls
+    # ------------------------------------------------------------------
+
+    def set_packet_loss_simulation(
+        self,
+        *,
+        drone_id: int,
+        drop_rate: float,
+        burst_len: int = 1,
+        duration_sec: Optional[float] = None,
+        seed: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        state = {
+            "enabled": True,
+            "drop_rate": max(0.0, min(1.0, float(drop_rate))),
+            "burst_len": max(1, int(burst_len)),
+            "duration_sec": float(duration_sec) if duration_sec is not None else None,
+            "started_mono": time.monotonic(),
+            "burst_remaining": 0,
+            "rng": random.Random(seed if seed is not None else (drone_id * 7919)),
+            "seed": seed,
+            "total_packets": 0,
+            "lost_packets": 0,
+        }
+        self._packet_loss_sim[drone_id] = state
+        self.telemetry.setdefault(drone_id, _empty_snapshot(drone_id))
+        logger.info(
+            "packet-loss simulation enabled drone=%s drop_rate=%.3f burst=%s duration_sec=%s",
+            drone_id,
+            state["drop_rate"],
+            state["burst_len"],
+            state["duration_sec"],
+        )
+        return self.get_packet_loss_simulation_state(drone_id)
+
+    def stop_packet_loss_simulation(self, drone_id: int) -> Dict[str, Any]:
+        state = self._packet_loss_sim.get(drone_id)
+        if state is None:
+            return {"drone_id": drone_id, "enabled": False}
+        state["enabled"] = False
+        return self.get_packet_loss_simulation_state(drone_id)
+
+    def get_packet_loss_simulation_state(self, drone_id: int) -> Dict[str, Any]:
+        state = self._packet_loss_sim.get(drone_id)
+        if state is None:
+            return {
+                "drone_id": drone_id,
+                "enabled": False,
+                "drop_rate": 0.0,
+                "burst_len": 1,
+                "duration_sec": None,
+                "total_packets": 0,
+                "lost_packets": 0,
+                "packet_loss_rate": 0.0,
+            }
+        total = int(state.get("total_packets", 0))
+        lost = int(state.get("lost_packets", 0))
+        return {
+            "drone_id": drone_id,
+            "enabled": bool(state.get("enabled", False)),
+            "drop_rate": float(state.get("drop_rate", 0.0)),
+            "burst_len": int(state.get("burst_len", 1)),
+            "duration_sec": state.get("duration_sec"),
+            "seed": state.get("seed"),
+            "total_packets": total,
+            "lost_packets": lost,
+            "packet_loss_rate": (lost / total) if total > 0 else 0.0,
+        }
+
+    def _should_drop_packet(self, drone_id: int) -> bool:
+        state = self._packet_loss_sim.get(drone_id)
+        if not state or not state.get("enabled"):
+            return False
+        duration = state.get("duration_sec")
+        if duration is not None and (time.monotonic() - state["started_mono"]) >= duration:
+            state["enabled"] = False
+            return False
+        if state.get("burst_remaining", 0) > 0:
+            state["burst_remaining"] -= 1
+            return True
+
+        rng = state["rng"]
+        if rng.random() < float(state.get("drop_rate", 0.0)):
+            state["burst_remaining"] = max(0, int(state.get("burst_len", 1)) - 1)
+            return True
+        return False
+
+    def _update_packet_counters(self, drone_id: int, *, dropped: bool) -> None:
+        state = self._packet_loss_sim.get(drone_id)
+        if not state:
+            return
+        state["total_packets"] = int(state.get("total_packets", 0)) + 1
+        if dropped:
+            state["lost_packets"] = int(state.get("lost_packets", 0)) + 1
+
+    def _attach_packet_metrics(self, drone_id: int, frame: Dict[str, Any]) -> None:
+        state = self._packet_loss_sim.get(drone_id)
+        if not state:
+            return
+        total = int(state.get("total_packets", 0))
+        lost = int(state.get("lost_packets", 0))
+        frame["packet_total"] = total
+        frame["packet_lost"] = lost
+        frame["packet_loss_rate"] = (lost / total) if total > 0 else 0.0
 
 
 # ---------------------------------------------------------------------------

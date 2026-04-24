@@ -192,11 +192,15 @@ curl -X POST http://localhost:8000/auth/login \
 | GET | `/api/v1/mission/fields` | viewer+ | Список полей |
 | GET | `/api/v1/mission/risk-zones` | viewer+ | Зоны РЭБ |
 | POST | `/api/v1/mission/plan` | operator | Спланировать маршруты |
-| POST | `/api/v1/missions/{id}/start` | operator | Загрузить и запустить на дронах |
-| POST | `/api/v1/missions/{id}/simulate-loss` | operator | Симулировать потерю дрона |
-| POST | `/api/v1/missions/{id}/risk-zones` | operator | Добавить зону РЭБ в полёте |
-| WS | `/ws/telemetry` | — | Симуляция телеметрии по маршруту |
-| WS | `/ws/telemetry/{drone_id}` | — | Реальная MAVLink телеметрия |
+| POST | `/api/v1/mission/{id}/start` | operator | Загрузить и запустить на дронах |
+| POST | `/api/v1/mission/{id}/simulate-loss` | operator | Симулировать потерю дрона |
+| POST | `/api/v1/mission/{id}/risk-zones` | operator | Добавить зону РЭБ в полёте |
+| POST | `/api/v1/mission/{id}/fusion-context` | operator | Зарегистрировать контекст mission runtime для auto-replan |
+| POST | `/api/v1/risk-zones/suspected` | operator | Создать manual suspected jammer зону |
+| PATCH | `/api/v1/risk-zones/{zone_id}/state` | operator | Обновить state suspected/dynamic зоны |
+| WS | `/ws/telemetry/mission` | — | Единый mission stream (simulation/live, fusion, dynamic_zones) |
+| WS | `/ws/telemetry` | — | Legacy simulation stream (deprecated thin-wrapper) |
+| WS | `/ws/telemetry/{drone_id}` | — | Legacy single-drone live stream (deprecated thin-wrapper) |
 
 ---
 
@@ -231,7 +235,7 @@ curl -X POST http://localhost:8000/auth/login \
 
 ```
 Frontend (React) ──► POST /mission/plan ──► RoutingService (Voronoi + OR-Tools)
-                 ◄── WS /ws/telemetry   ◄── MAVLinkService (pymavlink)
+                 ◄── WS /ws/telemetry/mission ◄── MAVLinkService + fusion runtime
                                                     │
                                          ArduPilot SITL (4 инстанса)
                                          tcp:*:14550 / 14560 / 14570 / 14580

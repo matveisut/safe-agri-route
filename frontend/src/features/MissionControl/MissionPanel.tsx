@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import { useMissionStore } from '../../store/useMissionStore';
-import { useTelemetry } from '../../hooks/useTelemetry';
+import { useMissionTelemetryStream } from '../../hooks/useMissionTelemetryStream';
 import { useLiveFusionSocket } from '../../hooks/useLiveFusionSocket';
 
 // ---------------------------------------------------------------------------
@@ -83,6 +83,11 @@ function CoverageBar({ value }: { value: number }) {
 export default function MissionPanel() {
   const [isPlanning, setIsPlanning] = useState(false);
   const [autoReplanNotice, setAutoReplanNotice] = useState(false);
+  const [packetLossRate, setPacketLossRate] = useState(0.35);
+  const [packetLossBurst, setPacketLossBurst] = useState(1);
+  const [packetLossDuration, setPacketLossDuration] = useState(30);
+  const [packetLossEnabled, setPacketLossEnabled] = useState(false);
+  const [packetLossMessage, setPacketLossMessage] = useState<string | null>(null);
   const lastReplanEventRef = useRef(0);
 
   const ALL_DRONES = [
@@ -105,14 +110,27 @@ export default function MissionPanel() {
     liveFusion,
     setLiveFusion,
     resetLiveFusion,
+    missionTelemetryMode,
+    setMissionTelemetryMode,
+    suspectedDrawMode,
+    setSuspectedDrawMode,
+    missionId,
+    setMissionId,
+    fusionByDrone,
   } = useMissionStore();
 
-  const { startSimulation, stopSimulation, isConnected } = useTelemetry();
+  const { start, stop, isConnected, liveStartStatus, liveStartMessage } = useMissionTelemetryStream(
+    missionTelemetryMode,
+    plannedRoutes,
+  );
   useLiveFusionSocket();
 
   useEffect(() => {
     if (fields.length > 0 && !selectedFieldId) {
-      setSelectedField(fields[0].id);
+      const stavropolDefault = fields.find((f) =>
+        f.name.toLowerCase().includes('stavropol wheat field'),
+      );
+      setSelectedField((stavropolDefault ?? fields[0]).id);
     }
   }, [fields]);
 
@@ -126,6 +144,40 @@ export default function MissionPanel() {
     }
     lastReplanEventRef.current = ev;
   }, [liveFusion.lastAutoReplanEvent]);
+
+  const selectedFusion = liveFusion.droneId != null ? fusionByDrone[liveFusion.droneId] : undefined;
+  const selectedPlr = selectedFusion?.packet_loss_rate ?? null;
+
+  const handleStartPacketLoss = async () => {
+    const droneId = liveFusion.droneId ?? selectedDroneIds[0] ?? 1;
+    try {
+      const res = await api.post(`/mission/${missionId}/packet-loss/simulate`, {
+        drone_id: droneId,
+        drop_rate: packetLossRate,
+        burst_len: packetLossBurst,
+        duration_sec: packetLossDuration,
+      });
+      setPacketLossEnabled(true);
+      setPacketLossMessage(
+        `Packet loss ON: drone #${droneId}, drop_rate=${Number(res.data?.drop_rate ?? packetLossRate).toFixed(2)}`,
+      );
+    } catch (e) {
+      console.error('Failed to enable packet loss simulation', e);
+      setPacketLossMessage('Не удалось включить симуляцию packet loss');
+    }
+  };
+
+  const handleStopPacketLoss = async () => {
+    const droneId = liveFusion.droneId ?? selectedDroneIds[0] ?? 1;
+    try {
+      await api.post(`/mission/${missionId}/packet-loss/stop`, { drone_id: droneId });
+      setPacketLossEnabled(false);
+      setPacketLossMessage(`Packet loss OFF for drone #${droneId}`);
+    } catch (e) {
+      console.error('Failed to stop packet loss simulation', e);
+      setPacketLossMessage('Не удалось выключить симуляцию packet loss');
+    }
+  };
 
   const handlePlanRoute = async () => {
     if (!selectedFieldId) {
@@ -245,22 +297,80 @@ export default function MissionPanel() {
           {isPlanning ? 'Computing CVRP…' : '1. Generate Neural Route'}
         </button>
 
+        <div className="mb-3">
+          <label className="block text-xs text-slate-400 mb-1">Telemetry Source</label>
+          <select
+            className="w-full bg-slate-800 text-slate-100 border border-slate-700 rounded-lg p-2 text-sm"
+            value={missionTelemetryMode}
+            onChange={(e) =>
+              setMissionTelemetryMode(e.target.value as 'simulation' | 'live')
+            }
+            disabled={isConnected}
+          >
+            <option value="simulation">simulation</option>
+            <option value="live">live</option>
+          </select>
+        </div>
+        <div className="mb-3">
+          <label className="block text-xs text-slate-400 mb-1">Mission ID</label>
+          <input
+            type="number"
+            min={1}
+            value={missionId}
+            onChange={(e) =>
+              setMissionId(Math.max(1, Number.parseInt(e.target.value || '1', 10)))
+            }
+            className="w-full bg-slate-800 text-slate-100 border border-slate-700 rounded-lg p-2 text-sm"
+            disabled={isConnected}
+          />
+        </div>
+
         {!isConnected ? (
           <button
-            onClick={() => startSimulation()}
+            onClick={() => start()}
             disabled={plannedRoutes.length === 0}
             className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
           >
-            2. Start Telemetry Sim
+            {missionTelemetryMode === 'live'
+              ? 'Запустить миссию (SITL) + телеметрию'
+              : 'Запустить телеметрию миссии'}
           </button>
         ) : (
           <button
-            onClick={stopSimulation}
+            onClick={stop}
             className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg shadow-red-500/20 active:scale-95 animate-pulse"
           >
-            Stop Simulation
+            Стоп телеметрии миссии
           </button>
         )}
+        {missionTelemetryMode === 'live' && liveStartStatus !== 'idle' && (
+          <p
+            className={`mt-2 text-xs rounded-lg px-2 py-1.5 border ${
+              liveStartStatus === 'started'
+                ? 'text-emerald-300 border-emerald-700/50 bg-emerald-950/30'
+                : liveStartStatus === 'partial'
+                  ? 'text-amber-300 border-amber-700/50 bg-amber-950/30'
+                  : liveStartStatus === 'failed'
+                    ? 'text-red-300 border-red-700/50 bg-red-950/30'
+                    : 'text-slate-300 border-slate-700/50 bg-slate-900/40'
+            }`}
+          >
+            {liveStartMessage ??
+              (liveStartStatus === 'starting'
+                ? 'Запуск миссии...'
+                : `Статус старта: ${liveStartStatus}`)}
+          </p>
+        )}
+
+        <label className="mt-3 flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={suspectedDrawMode}
+            onChange={(e) => setSuspectedDrawMode(e.target.checked)}
+            className="accent-amber-500"
+          />
+          Режим рисования suspected_jammer
+        </label>
       </div>
 
       {/* ------------------------------------------------------------------ */}
@@ -315,11 +425,67 @@ export default function MissionPanel() {
             ) : (
               <p className="text-xs text-slate-500">Fusion: н/д (ожидание кадров…)</p>
             )}
+            <p className="text-xs text-slate-400">
+              PLR:{' '}
+              <span className="font-semibold text-slate-200">
+                {selectedPlr == null ? 'н/д' : `${Math.round(selectedPlr * 100)}%`}
+              </span>
+            </p>
             {autoReplanNotice && (
               <p className="text-xs font-semibold text-amber-400 border border-amber-700/50 rounded-lg px-2 py-1.5 bg-amber-950/40">
                 Авто-риск: перепланирование выполнено
               </p>
             )}
+            <div className="mt-2 pt-2 border-t border-slate-700/60 space-y-2">
+              <p className="text-xs uppercase tracking-wide text-slate-500">Packet loss simulation</p>
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={packetLossRate}
+                  onChange={(e) => setPacketLossRate(Number(e.target.value))}
+                  className="bg-slate-800 text-slate-100 border border-slate-600 rounded px-2 py-1 text-xs"
+                  title="drop_rate"
+                />
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  step={1}
+                  value={packetLossBurst}
+                  onChange={(e) => setPacketLossBurst(Math.max(1, Number(e.target.value)))}
+                  className="bg-slate-800 text-slate-100 border border-slate-600 rounded px-2 py-1 text-xs"
+                  title="burst_len"
+                />
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={packetLossDuration}
+                  onChange={(e) => setPacketLossDuration(Math.max(1, Number(e.target.value)))}
+                  className="bg-slate-800 text-slate-100 border border-slate-600 rounded px-2 py-1 text-xs"
+                  title="duration_sec"
+                />
+              </div>
+              {!packetLossEnabled ? (
+                <button
+                  onClick={handleStartPacketLoss}
+                  className="w-full bg-amber-600 hover:bg-amber-500 text-white font-semibold py-1.5 px-2 rounded-lg text-xs"
+                >
+                  Enable packet loss
+                </button>
+              ) : (
+                <button
+                  onClick={handleStopPacketLoss}
+                  className="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-1.5 px-2 rounded-lg text-xs"
+                >
+                  Disable packet loss
+                </button>
+              )}
+              {packetLossMessage && <p className="text-[11px] text-slate-400">{packetLossMessage}</p>}
+            </div>
           </div>
         )}
       </div>

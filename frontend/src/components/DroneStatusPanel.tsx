@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import api from '../services/api';
 import { useMissionStore, DroneStatus } from '../store/useMissionStore';
-import { useTelemetry } from '../hooks/useTelemetry';
+import { useMissionTelemetryStream } from '../hooks/useMissionTelemetryStream';
 
 const ALL_DRONES = [
   { id: 1, name: 'AgriFly-1' },
@@ -37,9 +37,10 @@ function StatusBadge({ status }: { status: DroneStatus }) {
  *
  * Shows each drone's current status and a "Simulate Loss" button that:
  *   1. Marks the drone as LOST in the store.
- *   2. Calls POST /mission/1/simulate-loss?drone_id={id}.
+ *   2. Calls POST /mission/{id}/simulate-loss?drone_id={id}.
  *   3. Updates planned routes with the replanner's response.
- *   4. Restarts the telemetry WebSocket with the new routes + updated IRM.
+ *   4. In simulation mode: restarts mission stream with updated routes.
+ *      In live mode: keeps SITL stream running (no forced fallback to simulation).
  */
 export default function DroneStatusPanel() {
   const {
@@ -48,12 +49,17 @@ export default function DroneStatusPanel() {
     plannedRoutes,
     missionIsActive,
     droneStatuses,
+    missionTelemetryMode,
+    missionId,
     setDroneStatus,
     setPlannedRoutes,
     updateMissionIRM,
   } = useMissionStore();
 
-  const { isConnected, startSimulation, stopSimulation } = useTelemetry();
+  const { isConnected, start, stop } = useMissionTelemetryStream(
+    missionTelemetryMode,
+    plannedRoutes,
+  );
 
   const [replanning, setReplanning] = useState<number | null>(null); // drone_id being replanned
   const [disabled, setDisabled]     = useState<Set<number>>(new Set());
@@ -76,7 +82,7 @@ export default function DroneStatusPanel() {
       selectedDroneIds.forEach((id) => { visitedCounts[id] = 0; });
 
       const res = await api.post(
-        `/mission/1/simulate-loss?drone_id=${droneId}`,
+        `/mission/${missionId}/simulate-loss?drone_id=${droneId}`,
         {
           field_id:      selectedFieldId,
           drone_ids:     remainingDroneIds,
@@ -89,14 +95,16 @@ export default function DroneStatusPanel() {
         setPlannedRoutes(res.data.updated_routes);
         updateMissionIRM(res.data.new_irm);
 
-        // Restart telemetry simulation with the new routes so the map
-        // immediately shows the redistributed paths.
-        if (isConnected) {
-          stopSimulation();
-          // Small delay so the WS connection fully closes before reopening.
-          await new Promise<void>((r) => setTimeout(r, 400));
+        // Only simulation mode needs socket restart with new routes.
+        // In live mode, keep SITL mission stream as-is to avoid fallback effects.
+        if (missionTelemetryMode === 'simulation') {
+          if (isConnected) {
+            stop();
+            // Small delay so the WS connection fully closes before reopening.
+            await new Promise<void>((r) => setTimeout(r, 250));
+          }
+          start(res.data.new_irm);
         }
-        startSimulation(res.data.new_irm);
       }
     } catch (err) {
       console.error('simulate-loss failed', err);

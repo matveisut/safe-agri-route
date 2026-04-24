@@ -13,6 +13,7 @@ from app.services.telemetry_features import (
     compute_gnss_stability_score,
     compute_imu_proxy_score,
     compute_link_stability_score,
+    compute_packet_loss_score,
     get_swarm_outlier_score,
     reset_telemetry_buffers,
     update_from_mavlink_snapshot,
@@ -30,6 +31,8 @@ def _frame(
     sats: int | None = None,
     eph: float | None = None,
     rssi: float | None = None,
+    packet_total: int | None = None,
+    packet_lost: int | None = None,
 ) -> dict:
     return {
         "t_sec": t_sec,
@@ -42,6 +45,8 @@ def _frame(
         "satellites_visible": sats,
         "eph": eph,
         "rssi": rssi,
+        "packet_total": packet_total,
+        "packet_lost": packet_lost,
     }
 
 
@@ -176,3 +181,29 @@ def test_reset_single_drone():
 def test_invalid_messages_type_raises():
     with pytest.raises(TypeError):
         update_from_mavlink_snapshot(1, "not-a-mapping")
+
+
+def test_packet_loss_score_from_explicit_counters():
+    for i in range(5):
+        update_from_mavlink_snapshot(
+            1,
+            _frame(
+                10.0 + i * 0.1,
+                50.0,
+                30.0,
+                packet_total=100 + i,
+                packet_lost=20 + i,
+            ),
+        )
+    plr = compute_packet_loss_score(1)
+    assert 0.18 <= plr <= 0.25
+
+
+def test_packet_loss_score_from_time_gaps_when_counters_absent():
+    t = 0.0
+    # mostly regular cadence with one big gap (loss burst proxy)
+    for dt in [0.2, 0.2, 0.2, 0.8, 0.2, 0.2]:
+        t += dt
+        update_from_mavlink_snapshot(2, _frame(t, 50.0, 30.0))
+    plr = compute_packet_loss_score(2)
+    assert plr > 0.0

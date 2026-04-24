@@ -4,7 +4,7 @@ import L from 'leaflet';
 import 'leaflet-draw';
 import 'leaflet-draw/dist/leaflet.draw.css';
 
-export type DrawMode = 'field' | 'risk-zone' | null;
+export type DrawMode = 'field' | 'risk-zone' | 'suspected-zone' | null;
 
 interface Props {
   mode: DrawMode;
@@ -42,7 +42,8 @@ export default function DrawControl({ mode, onPolygonComplete }: Props) {
 
     if (!mode) return;
 
-    const color = mode === 'field' ? '#10b981' : '#ef4444';
+    const color =
+      mode === 'field' ? '#10b981' : mode === 'suspected-zone' ? '#f59e0b' : '#ef4444';
 
     // L.Draw.Polygon is added to the L namespace by the 'leaflet-draw' side-effect import.
     const LDraw = (L as any).Draw;

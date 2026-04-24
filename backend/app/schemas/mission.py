@@ -70,6 +70,33 @@ class AddRiskZoneRequest(BaseModel):
     visited_counts: Dict[int, int]
 
 
+class CreateSuspectedRiskZoneRequest(BaseModel):
+    """Body for POST /risk-zones/suspected."""
+    geometry: Dict[str, Any]
+    source: str = "operator"
+    ttl_sec: Optional[float] = None
+    note: Optional[str] = None
+
+
+class UpdateRiskZoneStateRequest(BaseModel):
+    """Body for PATCH /risk-zones/{zone_id}/state."""
+    state: str
+
+
+class PacketLossSimulateRequest(BaseModel):
+    """Body for POST /mission/{id}/packet-loss/simulate."""
+    drone_id: int
+    drop_rate: float
+    burst_len: int = 1
+    duration_sec: Optional[float] = None
+    seed: Optional[int] = None
+
+
+class PacketLossStopRequest(BaseModel):
+    """Body for POST /mission/{id}/packet-loss/stop."""
+    drone_id: int
+
+
 # ---------------------------------------------------------------------------
 # MAVLink mission start schemas
 # ---------------------------------------------------------------------------
