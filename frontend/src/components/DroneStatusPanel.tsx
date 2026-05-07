@@ -43,18 +43,16 @@ function StatusBadge({ status }: { status: DroneStatus }) {
  *      In live mode: keeps SITL stream running (no forced fallback to simulation).
  */
 export default function DroneStatusPanel() {
-  const {
-    selectedDroneIds,
-    selectedFieldId,
-    plannedRoutes,
-    missionIsActive,
-    droneStatuses,
-    missionTelemetryMode,
-    missionId,
-    setDroneStatus,
-    setPlannedRoutes,
-    updateMissionIRM,
-  } = useMissionStore();
+  const selectedDroneIds = useMissionStore((s) => s.selectedDroneIds);
+  const selectedFieldId = useMissionStore((s) => s.selectedFieldId);
+  const plannedRoutes = useMissionStore((s) => s.plannedRoutes);
+  const missionIsActive = useMissionStore((s) => s.missionIsActive);
+  const droneStatuses = useMissionStore((s) => s.droneStatuses);
+  const missionTelemetryMode = useMissionStore((s) => s.missionTelemetryMode);
+  const missionId = useMissionStore((s) => s.missionId);
+  const setDroneStatus = useMissionStore((s) => s.setDroneStatus);
+  const setPlannedRoutes = useMissionStore((s) => s.setPlannedRoutes);
+  const updateMissionIRM = useMissionStore((s) => s.updateMissionIRM);
 
   const { isConnected, start, stop } = useMissionTelemetryStream(
     missionTelemetryMode,

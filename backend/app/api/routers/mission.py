@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 import shapely.wkb
 
@@ -46,9 +46,9 @@ async def plan_mission(
     drones = []
     for d_id in request.drone_ids:
         drone = await drone_repo.get(db, d_id)
-        if clone := drone:
-            drones.append(clone)
-            
+        if drone:
+            drones.append(drone)
+
     if not drones:
         raise HTTPException(status_code=400, detail="No valid drones found")
 
@@ -261,7 +261,7 @@ async def register_fusion_mission_context(
 async def simulate_drone_loss(
     mission_id: int,
     drone_id: int = Query(..., description="ID of the drone that was lost"),
-    request: SimulateLossRequest = ...,
+    request: SimulateLossRequest = Body(...),
     db: AsyncSession = Depends(get_db),
     _: User = Depends(require_operator),
 ):

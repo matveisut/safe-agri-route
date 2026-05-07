@@ -1,6 +1,8 @@
 import { useState, FormEvent } from 'react';
 import axios from 'axios';
 
+import { API_ORIGIN } from '../config';
+
 interface Props {
   onLogin: () => void;
 }
@@ -21,7 +23,7 @@ export default function LoginPage({ onLogin }: Props) {
       params.append('password', password);
 
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL ?? 'http://localhost:8000'}/auth/login`,
+        `${API_ORIGIN}/auth/login`,
         params,
         { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
       );

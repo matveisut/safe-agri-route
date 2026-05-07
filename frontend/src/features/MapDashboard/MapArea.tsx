@@ -130,20 +130,19 @@ export default function MapArea() {
   const [pendingGeojson, setPendingGeojson] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const {
-    fields,
-    setFields,
-    plannedRoutes,
-    telemetry,
-    showRiskOverlay,
-    setShowRiskOverlay,
-    missionIsActive,
-    selectedFieldId,
-    selectedDroneIds,
-    dynamicJammerZones,
-    suspectedDrawMode,
-    setSuspectedDrawMode,
-  } = useMissionStore();
+  const fields = useMissionStore((s) => s.fields);
+  const setFields = useMissionStore((s) => s.setFields);
+  const plannedRoutes = useMissionStore((s) => s.plannedRoutes);
+  const telemetry = useMissionStore((s) => s.telemetry);
+  const showRiskOverlay = useMissionStore((s) => s.showRiskOverlay);
+  const setShowRiskOverlay = useMissionStore((s) => s.setShowRiskOverlay);
+  const missionIsActive = useMissionStore((s) => s.missionIsActive);
+  const selectedFieldId = useMissionStore((s) => s.selectedFieldId);
+  const selectedDroneIds = useMissionStore((s) => s.selectedDroneIds);
+  const dynamicJammerZones = useMissionStore((s) => s.dynamicJammerZones);
+  const suspectedDrawMode = useMissionStore((s) => s.suspectedDrawMode);
+  const setSuspectedDrawMode = useMissionStore((s) => s.setSuspectedDrawMode);
+  const missionId = useMissionStore((s) => s.missionId);
 
   // Alias used for replanning payload (same reference, separate name for clarity)
   const currentRoutes = plannedRoutes;
@@ -204,7 +203,7 @@ export default function MapArea() {
 
       // If a mission is active, trigger dynamic replanning
       if (missionIsActive && selectedFieldId && currentRoutes.length > 0) {
-        await api.post('/mission/1/risk-zones', {
+        await api.post(`/mission/${missionId}/risk-zones`, {
           field_id: selectedFieldId,
           drone_ids: selectedDroneIds,
           new_zone: {
@@ -358,7 +357,7 @@ export default function MapArea() {
 
         {/* Live Drone Markers */}
         {Object.entries(telemetry).map(([droneId_str, coords]) => {
-          const d_id = parseInt(droneId_str);
+          const d_id = parseInt(droneId_str, 10);
           const color = DRONE_COLORS[d_id % DRONE_COLORS.length];
           return (
             <CircleMarker

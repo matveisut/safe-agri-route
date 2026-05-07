@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { WS_ORIGIN } from '../config';
 import api from '../services/api';
@@ -7,6 +7,11 @@ import type { DroneRoute } from '../store/useMissionStore';
 import { useMissionStore } from '../store/useMissionStore';
 
 type MissionStreamMode = 'simulation' | 'live';
+
+// Singleton socket shared across all hook instances — prevents the duplicate
+// stream that would otherwise be opened when DroneStatusPanel's hook calls
+// start() while MissionPanel's hook still owns its own socket.
+let activeSocket: WebSocket | null = null;
 
 type MissionFrame = {
   protocol?: string;
@@ -32,36 +37,32 @@ export function useMissionTelemetryStream(
   routes: DroneRoute[],
   irm?: number,
 ) {
-  const wsRef = useRef<WebSocket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
   const [liveStartStatus, setLiveStartStatus] = useState<
     'idle' | 'starting' | 'started' | 'partial' | 'failed'
   >('idle');
   const [liveStartMessage, setLiveStartMessage] = useState<string | null>(null);
 
-  const {
-    updateTelemetry,
-    updateMissionIRM,
-    setMissionActive,
-    setDroneStatus,
-    resetDroneStatuses,
-    setFusionByDrone,
-    setDynamicJammerZones,
-    selectedFieldId,
-    missionId,
-  } = useMissionStore();
+  const updateTelemetry = useMissionStore((s) => s.updateTelemetry);
+  const updateMissionIRM = useMissionStore((s) => s.updateMissionIRM);
+  const setMissionActive = useMissionStore((s) => s.setMissionActive);
+  const setDroneStatus = useMissionStore((s) => s.setDroneStatus);
+  const resetDroneStatuses = useMissionStore((s) => s.resetDroneStatuses);
+  const setFusionByDrone = useMissionStore((s) => s.setFusionByDrone);
+  const setDynamicJammerZones = useMissionStore((s) => s.setDynamicJammerZones);
+  const selectedFieldId = useMissionStore((s) => s.selectedFieldId);
+  const missionId = useMissionStore((s) => s.missionId);
+  const missionIsActive = useMissionStore((s) => s.missionIsActive);
 
   const stop = useCallback(() => {
-    wsRef.current?.close();
-    wsRef.current = null;
-    setIsConnected(false);
+    activeSocket?.close();
+    activeSocket = null;
     setMissionActive(false);
     resetDroneStatuses();
     if (mode === 'live') {
       setLiveStartStatus('idle');
       setLiveStartMessage(null);
     }
-  }, [resetDroneStatuses, setMissionActive]);
+  }, [mode, resetDroneStatuses, setMissionActive]);
 
   const start = useCallback(
     async (nextIrm?: number) => {
@@ -125,12 +126,11 @@ export function useMissionTelemetryStream(
         }
       }
 
-      wsRef.current?.close();
+      activeSocket?.close();
       const ws = new WebSocket(`${WS_ORIGIN}/ws/telemetry/mission`);
-      wsRef.current = ws;
+      activeSocket = ws;
 
       ws.onopen = () => {
-        setIsConnected(true);
         setMissionActive(true);
         routes.forEach((r) => setDroneStatus(r.drone_id, 'active'));
         const payload: Record<string, unknown> = {
@@ -170,7 +170,6 @@ export function useMissionTelemetryStream(
             setDynamicJammerZones(data.dynamic_zones);
           }
           if (data.message === 'Mission Completed') {
-            setIsConnected(false);
             setMissionActive(false);
           }
         } catch (err) {
@@ -179,11 +178,11 @@ export function useMissionTelemetryStream(
       };
 
       ws.onclose = () => {
-        wsRef.current = null;
-        setIsConnected(false);
+        if (activeSocket === ws) activeSocket = null;
+        setMissionActive(false);
       };
       ws.onerror = () => {
-        wsRef.current?.close();
+        ws.close();
       };
     },
     [
@@ -201,7 +200,14 @@ export function useMissionTelemetryStream(
     ],
   );
 
-  useEffect(() => () => wsRef.current?.close(), []);
+  useEffect(
+    () => () => {
+      // Close the singleton only when the whole app unmounts (or HMR replaces
+      // this module). Per-component unmount must NOT close it, otherwise
+      // unmounting one panel would tear down the stream the other panel uses.
+    },
+    [],
+  );
 
-  return { start, stop, isConnected, liveStartStatus, liveStartMessage };
+  return { start, stop, isConnected: missionIsActive, liveStartStatus, liveStartMessage };
 }

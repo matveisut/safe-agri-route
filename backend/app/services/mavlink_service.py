@@ -594,6 +594,7 @@ class MAVLinkService:
         while True:
             if self._should_drop_packet(drone_id):
                 self._update_packet_counters(drone_id, dropped=True)
+                await asyncio.sleep(TELEMETRY_WINDOW)
                 continue
 
             frame = await loop.run_in_executor(

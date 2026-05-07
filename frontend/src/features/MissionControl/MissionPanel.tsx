@@ -96,28 +96,26 @@ export default function MissionPanel() {
     { id: 3, name: 'AgriFly-3', cap: '10 Ah' },
   ];
 
-  const {
-    fields,
-    selectedFieldId,
-    setSelectedField,
-    selectedDroneIds,
-    toggleDroneSelection,
-    setPlannedRoutes,
-    setMissionStats,
-    setRiskGridPreview,
-    plannedRoutes,
-    missionStats,
-    liveFusion,
-    setLiveFusion,
-    resetLiveFusion,
-    missionTelemetryMode,
-    setMissionTelemetryMode,
-    suspectedDrawMode,
-    setSuspectedDrawMode,
-    missionId,
-    setMissionId,
-    fusionByDrone,
-  } = useMissionStore();
+  const fields = useMissionStore((s) => s.fields);
+  const selectedFieldId = useMissionStore((s) => s.selectedFieldId);
+  const setSelectedField = useMissionStore((s) => s.setSelectedField);
+  const selectedDroneIds = useMissionStore((s) => s.selectedDroneIds);
+  const toggleDroneSelection = useMissionStore((s) => s.toggleDroneSelection);
+  const setPlannedRoutes = useMissionStore((s) => s.setPlannedRoutes);
+  const setMissionStats = useMissionStore((s) => s.setMissionStats);
+  const setRiskGridPreview = useMissionStore((s) => s.setRiskGridPreview);
+  const plannedRoutes = useMissionStore((s) => s.plannedRoutes);
+  const missionStats = useMissionStore((s) => s.missionStats);
+  const liveFusion = useMissionStore((s) => s.liveFusion);
+  const setLiveFusion = useMissionStore((s) => s.setLiveFusion);
+  const resetLiveFusion = useMissionStore((s) => s.resetLiveFusion);
+  const missionTelemetryMode = useMissionStore((s) => s.missionTelemetryMode);
+  const setMissionTelemetryMode = useMissionStore((s) => s.setMissionTelemetryMode);
+  const suspectedDrawMode = useMissionStore((s) => s.suspectedDrawMode);
+  const setSuspectedDrawMode = useMissionStore((s) => s.setSuspectedDrawMode);
+  const missionId = useMissionStore((s) => s.missionId);
+  const setMissionId = useMissionStore((s) => s.setMissionId);
+  const fusionByDrone = useMissionStore((s) => s.fusionByDrone);
 
   const { start, stop, isConnected, liveStartStatus, liveStartMessage } = useMissionTelemetryStream(
     missionTelemetryMode,
