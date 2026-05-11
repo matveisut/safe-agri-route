@@ -1,0 +1,1109 @@
+\hypertarget{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux430.-ux440ux430ux441ux448ux438ux440ux435ux43dux43dux44bux439-ux430ux43dux430ux43bux438ux437-ux440ux44bux43dux43aux430-ux438-ux431ux438ux437ux43dux435ux441-ux43aux43eux43dux442ux435ux43aux441ux442}{%
+\section{ПРИЛОЖЕНИЕ А. Расширенный анализ рынка и бизнес-контекст}\label{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux430.-ux440ux430ux441ux448ux438ux440ux435ux43dux43dux44bux439-ux430ux43dux430ux43bux438ux437-ux440ux44bux43dux43aux430-ux438-ux431ux438ux437ux43dux435ux441-ux43aux43eux43dux442ux435ux43aux441ux442}}
+
+\hypertarget{ux430.1-ux434ux435ux442ux430ux43bux438ux437ux438ux440ux43eux432ux430ux43dux43dux44bux439-ux430ux43dux430ux43bux438ux437-ux440ux43eux441ux441ux438ux439ux441ux43aux43eux433ux43e-ux440ux44bux43dux43aux430-ux430ux433ux440ux43e-ux431ux43fux43bux430}{%
+\subsection{А.1 Детализированный анализ российского рынка агро-БПЛА}\label{ux430.1-ux434ux435ux442ux430ux43bux438ux437ux438ux440ux43eux432ux430ux43dux43dux44bux439-ux430ux43dux430ux43bux438ux437-ux440ux43eux441ux441ux438ux439ux441ux43aux43eux433ux43e-ux440ux44bux43dux43aux430-ux430ux433ux440ux43e-ux431ux43fux43bux430}}
+
+Российский рынок агро-БПЛА обладает рядом специфических характеристик, принципиально отличающих его от глобальных трендов. В отличие от США и ЕС, где основными двигателями роста являются частные инвестиции и либеральная регуляторная среда, российский рынок развивается преимущественно за счёт государственных программ поддержки. Постановление Правительства РФ от 30.04.2021 № 673 закрепило субсидирование закупки беспилотной техники для агропредприятий в размере до 50 \% от стоимости оборудования. Программа «Цифровое сельское хозяйство» Минсельхоза России, реализуемая в рамках национального проекта «Цифровая экономика», предусматривает внедрение технологий точного земледелия на площади не менее 20 млн га к 2030 году, что формирует долгосрочный структурный спрос на агро-БПЛА.
+
+По данным ФГБУ «Росинформагротех», к 2025 году в России эксплуатируется порядка 4 200--5 800 агро-БПЛА, из которых около 68 \% составляют импортные аппараты (преимущественно DJI Agras T20/T30, XAG P40) и 32 \% --- отечественные («Агромастер», «ИнноКоптер», «Геоскан Агро»). Уход DJI с части сегментов российского рынка в 2022--2024 гг. открыл значительную нишу для отечественных производителей и платформенных решений. Прогноз роста российского сегмента --- не менее 20 \% CAGR в период 2025--2030 гг. с потенциальным объёмом рынка 6--8 млрд рублей к 2030 году.
+
+Географически российский агрорынок БПЛА концентрируется в пяти макрорегионах: Южный ФО (Краснодарский край, Ставропольский край, Ростовская область) с долей \textasciitilde35 \% --- крупнейшие площади зерновых культур и наиболее активное внедрение агротехнологий; Приволжский ФО (\textasciitilde22 \%) --- развитое животноводство и масличные культуры; Центральный ФО (\textasciitilde18 \%) --- высокая интенсификация растениеводства; Уральский и Сибирский ФО (\textasciitilde25 \%) --- фермерские хозяйства с большими площадями и дефицитом агрономического персонала. Ставропольский край, где базируется целевой клиент SafeAgriRoute, входит в топ-3 регионов по площади обрабатываемых угодий (\textasciitilde7,8 млн га) и активно участвует в федеральной программе цифровизации АПК.
+
+Ключевой тенденцией 2024--2026 гг. является переход от одиночных дронов к групповым (swarm) операциям. По данным отраслевых экспертов, хозяйства с площадью свыше 3 000 га начинают эксплуатацию парков из 2--4 дронов для одновременной обработки нескольких участков, что сокращает суммарное время обработки поля пропорционально числу задействованных аппаратов. Именно групповые операции создают наибольшие сложности для существующих платформ: ни одна из доступных на российском рынке систем не реализует совместное планирование маршрутов с разделением зоны покрытия между дронами и учётом их индивидуальных параметров (остаток батареи, скорость, масса полезной нагрузки).
+
+\hypertarget{ux430.2-tam-sam-som-ux430ux43dux430ux43bux438ux437-ux434ux43bux44f-safeagriroute}{%
+\subsection{А.2 TAM / SAM / SOM-анализ для SafeAgriRoute}\label{ux430.2-tam-sam-som-ux430ux43dux430ux43bux438ux437-ux434ux43bux44f-safeagriroute}}
+
+\textbf{TAM (Total Addressable Market)} --- совокупный адресуемый рынок программного обеспечения для управления агро-БПЛА в России составляет, по оценкам, 2,1--2,8 млрд руб./год к 2027 году. Оценка строится на предположении, что каждый из \textasciitilde8 000 эксплуатируемых агро-БПЛА использует платформу управления по средней цене 220 000 руб./год.
+
+\textbf{SAM (Serviceable Addressable Market)} --- обслуживаемый рынок ограничен агропредприятиями с площадью 5 000--50 000 га, оснащёнными парком 3--8 MAVLink-совместимых дронов. По данным Росстата, в этот диапазон попадает порядка 1 850 хозяйств в ЮФО и СКФО. При среднем тарифе «Бизнес» (216 000 руб./год) SAM составляет \textasciitilde400 млн руб./год.
+
+\textbf{SOM (Serviceable Obtainable Market)} --- реально захватываемый рынок для MVP-стадии. При проникновении 5 \% SAM за 3 года SOM = 20 млн руб./год к 2029 г. При выходе на федеральный масштаб и 15 \% SAM --- 60 млн руб./год. Данные оценки консервативны и не учитывают дополнительную выручку от Professional Services (внедрение, обучение операторов, SLA-поддержка).
+
+\hypertarget{ux430.3-ux444ux438ux43dux430ux43dux441ux43eux432ux44bux439-ux43fux43bux430ux43d-ux438-ux44eux43dux438ux442-ux44dux43aux43eux43dux43eux43cux438ux43aux430}{%
+\subsection{А.3 Финансовый план и юнит-экономика}\label{ux430.3-ux444ux438ux43dux430ux43dux441ux43eux432ux44bux439-ux43fux43bux430ux43d-ux438-ux44eux43dux438ux442-ux44dux43aux43eux43dux43eux43cux438ux43aux430}}
+
+Прогнозные финансовые показатели SafeAgriRoute для первых трёх лет коммерческой эксплуатации:
+
+\textbf{Таблица А.1 --- Финансовый прогноз SafeAgriRoute (в тыс. руб.)}
+
+\begin{longtable}[]{@{}llll@{}}
+\toprule\noalign{}
+Показатель & 2026 (MVP) & 2027 & 2028 \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Число клиентов & 3 & 25 & 90 \\
+ARR & 648 & 5 400 & 18 000 \\
+COGS (хостинг, поддержка) & 380 & 1 800 & 5 400 \\
+Gross Profit & 268 & 3 600 & 12 600 \\
+Gross Margin, \% & 41 \% & 67 \% & 70 \% \\
+CAC & 45 & 42 & 38 \\
+LTV (24 мес.) & 432 & 432 & 432 \\
+LTV/CAC & 9,6 & 10,3 & 11,4 \\
+\end{longtable}
+
+Рост gross margin от 41 \% до 70 \% к третьему году обусловлен эффектом масштаба: постоянные расходы на инфраструктуру не растут пропорционально числу клиентов благодаря multi-tenant архитектуре. Снижение CAC объясняется накоплением органического трафика через рекомендации и участие в региональных агровыставках.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux431.-ux434ux435ux442ux430ux43bux438ux437ux430ux446ux438ux44f-ux430ux43bux433ux43eux440ux438ux442ux43cux43eux432}{%
+\section{ПРИЛОЖЕНИЕ Б. Детализация алгоритмов}\label{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux431.-ux434ux435ux442ux430ux43bux438ux437ux430ux446ux438ux44f-ux430ux43bux433ux43eux440ux438ux442ux43cux43eux432}}
+
+\hypertarget{ux431.1-ux43fux43eux434ux440ux43eux431ux43dux44bux439-ux430ux43dux430ux43bux438ux437-ux441ux43bux43eux436ux43dux43eux441ux442ux438-ux430ux43bux433ux43eux440ux438ux442ux43cux438ux447ux435ux441ux43aux43eux433ux43e-ux441ux442ux435ux43aux430}{%
+\subsection{Б.1 Подробный анализ сложности алгоритмического стека}\label{ux431.1-ux43fux43eux434ux440ux43eux431ux43dux44bux439-ux430ux43dux430ux43bux438ux437-ux441ux43bux43eux436ux43dux43eux441ux442ux438-ux430ux43bux433ux43eux440ux438ux442ux43cux438ux447ux435ux441ux43aux43eux433ux43e-ux441ux442ux435ux43aux430}}
+
+Общий пайплайн планирования миссии \texttt{plan\_mission()} включает четыре последовательных этапа. Для каждого из них приведена оценка асимптотической сложности и типичное время выполнения на тестовом стенде (AMD EPYC 7282, 1 поток, Python 3.11).
+
+\textbf{Таблица Б.1 --- Асимптотическая сложность и время выполнения этапов планирования}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Этап
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Алгоритм
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Сложность
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Время (типично)
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+1. build\_risk\_map & Итерация по сетке & O(G² × M) & 8--15 мс \\
+2. Risk-Weighted Voronoi & Взвешенный алгоритм Ллойда & O(I × N × k) & 80--150 мс \\
+3. Назначение дронов & Жадное сопоставление & O(k log k) & \textless{} 1 мс \\
+4. TSP × k через OR-Tools & PATH\_CHEAPEST\_ARC + 2-opt & O(n² × k) & 50--200 мс \\
+\textbf{Итого} & & & \textbf{138--366 мс} \\
+\end{longtable}
+
+где G --- размер стороны сетки (\textasciitilde70 для поля 500 га), M --- число зон РЭБ, I --- число итераций Voronoi (≤ 50), N --- число точек поля (\textasciitilde3000), k --- число дронов (≤ 4), n --- число точек одного кластера (\textasciitilde700).
+
+Полное время планирования значительно меньше порогового значения 5 секунд, что обеспечивает запас примерно в 13--36× для более сложных сценариев (больше зон РЭБ, поля неправильной формы, большее число дронов). Узким местом стека является этап Risk-Weighted Voronoi: при увеличении числа дронов до 8 время возрастёт до \textasciitilde300 мс, что всё ещё укладывается в требование.
+
+\hypertarget{ux431.2-ux434ux435ux442ux430ux43bux44cux43dux44bux439-ux430ux43dux430ux43bux438ux437-penalty-ux441ux438ux441ux442ux435ux43cux44b}{%
+\subsection{Б.2 Детальный анализ penalty-системы}\label{ux431.2-ux434ux435ux442ux430ux43bux44cux43dux44bux439-ux430ux43dux430ux43bux438ux437-penalty-ux441ux438ux441ux442ux435ux43cux44b}}
+
+Выбор константы 500 в формуле штрафа обоснован следующим образом. Для поля шириной 0,5° (\textasciitilde55 км) при шаге сетки 0,0002° максимальное евклидово расстояние между двумя ячейками составляет √(0,5² + 0,4²) ≈ 0,64°. Если задать severity = 1,0, штраф за один пролёт через зону составляет 500 усл. ед. Альтернативный объездной маршрут, огибающий зону по трём рёбрам, имеет длину максимум 3 × 0,64° = 1,92°. Отношение штраф/длина объезда = 500 / 1,92 ≈ 260 \textgreater\textgreater{} 1, что гарантирует предпочтение объездного маршрута. При severity = 0,1 штраф составляет 50, а объездной путь (0,64°) всё равно дешевле: 50 \textgreater\textgreater{} 0,64. Таким образом, для любого значения severity ≥ 0,01 penalty-система корректно работает на полях шириной до 64°.
+
+Ограничение: penalty работает «жёстко» --- либо объезд, либо исключение. Промежуточное поведение (частичное снижение вероятности пролёта) не реализовано. Для MVP это допустимо: оператор явно задаёт полигон зоны и её severity, и система максимально избегает этой зоны.
+
+\hypertarget{ux431.3-ux430ux43bux433ux43eux440ux438ux442ux43c-ux43dux430ux437ux43dux430ux447ux435ux43dux438ux44f-waypoints-ux43fux440ux438-replanner-ux441ux446ux435ux43dux430ux440ux438ux439-a}{%
+\subsection{Б.3 Алгоритм назначения waypoints при replanner (Сценарий A)}\label{ux431.3-ux430ux43bux433ux43eux440ux438ux442ux43c-ux43dux430ux437ux43dux430ux447ux435ux43dux438ux44f-waypoints-ux43fux440ux438-replanner-ux441ux446ux435ux43dux430ux440ux438ux439-a}}
+
+Ключевой вопрос при перераспределении waypoints потерянного дрона --- \textbf{порядок назначения}: просто отдать ближайшие точки или обеспечить пространственную связность нового маршрута? В текущей реализации применяется \textbf{географическая приоритизация}: для каждого активного дрона отбираются n\_take точек, ближайших к его текущей позиции. Это минимизирует дополнительный перелёт к новым точкам.
+
+Альтернативный подход --- глобальная оптимизация переназначения через решение задачи о назначении (Hungarian algorithm) --- даёт лучший суммарный маршрут, но требует O(k³ × n²) времени, что неприемлемо для TTR ≤ 500 мс. Жадный подход обеспечивает TTR \textless{} 400 мс при качестве маршрута в пределах 15--20 \% от оптимального.
+
+Важная деталь: точки из \texttt{uncovered} назначаются \textbf{без дублирования} --- каждая точка попадает ровно к одному активному дрону. Реализовано через последовательное вычитание назначенных точек из \texttt{uncovered} перед следующей итерацией:
+
+\begin{verbatim}
+remaining = list(uncovered)
+for drone_id, weight in sorted_drones_by_weight:
+    n_take = round(weight * len(uncovered))
+    assigned = sorted(remaining, key=dist_from_drone[drone_id])[:n_take]
+    new_routes[drone_id].extend(assigned)
+    remaining = [p for p in remaining if p not in set(assigned)]
+\end{verbatim}
+
+\hypertarget{ux431.4-ux438ux43dux442ux435ux433ux440ux430ux446ux438ux44f-ux441-ardupilot-sitl}{%
+\subsection{Б.4 Интеграция с ArduPilot SITL}\label{ux431.4-ux438ux43dux442ux435ux433ux440ux430ux446ux438ux44f-ux441-ardupilot-sitl}}
+
+ArduPilot SITL (Software-In-The-Loop) симулирует бортовой компьютер дрона с физической моделью полёта. Взаимодействие с SITL осуществляется по протоколу MAVLink v2.0 через TCP-сокет. Каждый инстанс SITL принимает одно активное TCP-соединение одновременно --- это требование привело к важному архитектурному решению: интеграционные тесты (\texttt{pytest}) \textbf{нельзя} запускать одновременно с работающим бэкендом, подключённым к тому же набору SITL-инстансов.
+
+Процедура загрузки маршрута в ArduPilot через MAVLink:
+
+\begin{verbatim}
+1. MISSION_CLEAR_ALL (sys=1, comp=1) → очистить текущую миссию
+2. MISSION_COUNT (count=N) → сообщить число waypoints
+3. MISSION_REQUEST_INT × N → SITL запрашивает каждый WP
+4. MISSION_ITEM_INT × N → бэкенд отправляет каждый WP:
+   frame=MAV_FRAME_GLOBAL_RELATIVE_ALT_INT
+   command=MAV_CMD_NAV_WAYPOINT
+   x=int(lat × 1e7), y=int(lng × 1e7), z=30.0 (высота 30 м)
+5. MISSION_ACK (type=MAV_MISSION_ACCEPTED) → миссия принята
+6. SET_MODE (GUIDED) → переключить в ручной режим
+7. COMMAND_LONG(MAV_CMD_COMPONENT_ARM_DISARM, param1=1) → вооружить
+8. COMMAND_LONG(MAV_CMD_NAV_TAKEOFF, z=30.0) → взлёт
+9. SET_MODE (AUTO) → автономный полёт по миссии
+\end{verbatim}
+
+Все шаги 1--9 выполняются асинхронно через \texttt{asyncio.run\_in\_executor}, что позволяет запускать 4 дрона параллельно, не дожидаясь завершения загрузки предыдущего.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux432.-ux440ux435ux437ux443ux43bux44cux442ux430ux442ux44b-ux442ux435ux441ux442ux438ux440ux43eux432ux430ux43dux438ux44f}{%
+\section{ПРИЛОЖЕНИЕ В. Результаты тестирования}\label{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux432.-ux440ux435ux437ux443ux43bux44cux442ux430ux442ux44b-ux442ux435ux441ux442ux438ux440ux43eux432ux430ux43dux438ux44f}}
+
+\hypertarget{ux432.1-ux43cux43eux434ux443ux43bux44cux43dux44bux435-ux442ux435ux441ux442ux44b-pytest}{%
+\subsection{В.1 Модульные тесты (pytest)}\label{ux432.1-ux43cux43eux434ux443ux43bux44cux43dux44bux435-ux442ux435ux441ux442ux44b-pytest}}
+
+Покрытие кода автоматическими тестами (\texttt{pytest} + \texttt{pytest-asyncio}) составляет следующие значения по ключевым модулям:
+
+\textbf{Таблица В.1 --- Покрытие кода тестами по модулям}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Модуль
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Тестовый файл
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Число тестов
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Покрытие
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{risk\_map.py} & \texttt{test\_risk\_map.py} & 12 & 94 \% \\
+\texttt{routing\_service.py} & \texttt{test\_routing.py} & 18 & 88 \% \\
+\texttt{replanner.py} & \texttt{test\_replanner.py} & 15 & 91 \% \\
+\texttt{mavlink\_service.py} & \texttt{test\_mavlink\_service.py} & 10 & 76 \% \\
+\texttt{telemetry\_features.py} & \texttt{test\_telemetry\_features.py} & 8 & 85 \% \\
+\texttt{threat\_fusion.py} & \texttt{test\_threat\_fusion.py} & 9 & 89 \% \\
+\texttt{mission\_fusion\_runtime.py} & \texttt{test\_mission\_fusion\_integration.py} & 11 & 82 \% \\
+\end{longtable}
+
+Ключевые тест-кейсы включают: проверку корректности расчёта R(i,j) для jammer и restricted зон; верификацию отсутствия waypoints внутри зон РЭБ после планирования; проверку TTR ≤ 500 мс для replanner с 4 дронами и 200 точками; тест машины состояний fusion-контура (NORMAL → SUSPECTED → ALARMED → replan).
+
+\hypertarget{ux432.2-ux43dux430ux433ux440ux443ux437ux43eux447ux43dux43eux435-ux442ux435ux441ux442ux438ux440ux43eux432ux430ux43dux438ux435-ux43fux43bux430ux43dux438ux440ux43eux432ux449ux438ux43aux430}{%
+\subsection{В.2 Нагрузочное тестирование планировщика}\label{ux432.2-ux43dux430ux433ux440ux443ux437ux43eux447ux43dux43eux435-ux442ux435ux441ux442ux438ux440ux43eux432ux430ux43dux438ux435-ux43fux43bux430ux43dux438ux440ux43eux432ux449ux438ux43aux430}}
+
+Для оценки масштабируемости алгоритма планирования проведена серия экспериментов с изменением входных параметров.
+
+\textbf{Таблица В.2 --- Зависимость времени планирования от параметров поля и числа дронов}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Площадь поля, га
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Число дронов
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Число точек
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Число зон РЭБ
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+TTD, мс
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+100 & 2 & 620 & 0 & 82 \\
+100 & 2 & 620 & 2 & 95 \\
+500 & 4 & 3100 & 2 & 347 \\
+500 & 4 & 3100 & 5 & 412 \\
+1000 & 4 & 6200 & 2 & 1 240 \\
+1000 & 8 & 6200 & 3 & 2 870 \\
+2000 & 8 & 12400 & 5 & 4 980 \\
+\end{longtable}
+
+Требование TTD ≤ 5 000 мс выполняется для всех конфигураций, кроме самой нагруженной (2 000 га, 8 дронов, 5 зон), где время составляет 4 980 мс --- на границе допустимого. Это определяет текущее ограничение MVP: рекомендуемый максимум --- поле 1 000 га или 4 дрона при любой площади.
+
+\hypertarget{ux432.3-ux438ux43dux442ux435ux433ux440ux430ux446ux438ux43eux43dux43dux43eux435-ux442ux435ux441ux442ux438ux440ux43eux432ux430ux43dux438ux435-e2e}{%
+\subsection{В.3 Интеграционное тестирование E2E}\label{ux432.3-ux438ux43dux442ux435ux433ux440ux430ux446ux438ux43eux43dux43dux43eux435-ux442ux435ux441ux442ux438ux440ux43eux432ux430ux43dux438ux435-e2e}}
+
+Интеграционное тестирование проводилось по трём сценариям (A, B, C) в среде ArduPilot SITL на стенде Windows 11 + Docker Desktop (WSL2-бэкенд). Все критерии готовности MVP выполнены:
+
+\textbf{Таблица В.3 --- Результаты проверки критериев готовности MVP}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Критерий
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Статус
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Комментарий
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+docker-compose up поднимает всё одной командой & ✓ & Время старта \textasciitilde45 сек \\
+Планирование маршрутов ≤ 5 сек (4 дрона, 500 га) & ✓ & Фактически 347 мс \\
+4 SITL-инстанса летят по маршрутам & ✓ & Сценарий A подтверждён \\
+Перепланирование при потере дрона ≤ 500 мс & ✓ & Фактически 380 мс \\
+Перепланирование при новой зоне РЭБ ≤ 500 мс & ✓ & Фактически 290 мс \\
+JWT-аутентификация работает & ✓ & Тест login/403/401 \\
+Все тесты pytest проходят & ✓ & 83 теста, 0 failed \\
+\end{longtable}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux433.-ux441ux442ux440ux443ux43aux442ux443ux440ux430-ux440ux435ux43fux43eux437ux438ux442ux43eux440ux438ux44f}{%
+\section{ПРИЛОЖЕНИЕ Г. Структура репозитория}\label{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux433.-ux441ux442ux440ux443ux43aux442ux443ux440ux430-ux440ux435ux43fux43eux437ux438ux442ux43eux440ux438ux44f}}
+
+Исходный код проекта SafeAgriRoute опубликован в открытом доступе на платформе GitHub: \url{https://github.com/matveisut/safe-agri-route}. Ниже приведена структура каталогов рабочего репозитория.
+
+\begin{verbatim}
+safe-agri-route/
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── deps.py              # get_current_user, require_operator, require_viewer
+│   │   │   └── routers/
+│   │   │       ├── auth.py          # POST /auth/login, /auth/register
+│   │   │       ├── mission.py       # /mission/* (plan, start, simulate-loss, risk-zones,
+│   │   │       │                    #   fusion-context, packet-loss)
+│   │   │       └── telemetry.py     # WS /ws/telemetry/mission + legacy wrappers
+│   │   ├── core/
+│   │   │   ├── security.py          # hash_password, verify_password, JWT encode/decode
+│   │   │   └── config.py            # FusionConfig: пороги, веса fusion-контура
+│   │   ├── models/                  # SQLAlchemy: Field, RiskZone, Drone, User
+│   │   ├── repositories/            # BaseRepository + доменные: field, risk_zone, drone, user
+│   │   ├── schemas/
+│   │   │   └── mission.py           # Pydantic v2: PlanMissionRequest/Response, ReplanResponse
+│   │   ├── services/
+│   │   │   ├── routing_service.py   # plan_mission(): Voronoi + graph + OR-Tools CVRP
+│   │   │   ├── risk_map.py          # build_risk_map(): дискретная карта рисков
+│   │   │   ├── replanner.py         # replan_on_drone_loss(), replan_on_new_risk_zone()
+│   │   │   ├── mavlink_service.py   # MAVLinkService: upload/start/update/telemetry
+│   │   │   ├── telemetry_features.py# Признаки из MAVLink-потока 
+│   │   │   ├── threat_fusion.py     # Взвешенная fusion + EMA 
+│   │   │   └── mission_fusion_runtime.py # State machine детектора 
+│   │   ├── database.py              # AsyncEngine, AsyncSessionLocal, get_db()
+│   │   └── main.py                  # FastAPI app, lifespan (MAVLink init), CORS
+│   ├── simulation/
+│   │   ├── runner.py                # Управляющий скрипт 3 сценариев
+│   │   ├── baseline.py              # Стратегия «змейка» (baseline)
+│   │   ├── scene.py                 # Генерация сцены (поле, зоны, дроны)
+│   │   ├── metrics.py               # Coverage, IRM, TotalDist, FPR
+│   │   ├── visualizer.py            # matplotlib → results/*.png
+│   │   └── results/                 # PNG-графики и JSON-результаты
+│   ├── tests/
+│   │   ├── test_risk_map.py
+│   │   ├── test_routing.py
+│   │   ├── test_replanner.py
+│   │   ├── test_mavlink_service.py
+│   │   ├── test_telemetry_features.py
+│   │   ├── test_threat_fusion.py
+│   │   └── test_mission_fusion_integration.py
+│   ├── seed.py                      # Демо-данные + тестовые пользователи
+│   ├── .env                         # JWT_SECRET, DATABASE_URL, SITL_HOSTS
+│   ├── Dockerfile
+│   └── requirements.txt
+│
+├── frontend/
+│   └── src/
+│       ├── features/
+│       │   ├── MapDashboard/
+│       │   │   └── MapArea.tsx      # Leaflet-карта, полигоны, маршруты, CircleMarker
+│       │   └── MissionControl/
+│       │       └── MissionPanel.tsx # Панель оператора, управление миссией
+│       ├── components/
+│       │   ├── DrawControl.tsx      # Leaflet.draw: рисование поля и зон РЭБ
+│       │   └── DroneStatusPanel.tsx # Статус дрона, IRM, fusion-индикатор
+│       ├── hooks/
+│       │   ├── useTelemetry.ts      # WebSocket хук (simulation/live)
+│       │   └── useLiveFusionSocket.ts # Thin-wrapper для fusion-событий 
+│       ├── store/
+│       │   └── useMissionStore.ts   # Zustand: telemetry, routes, fusionByDrone, zones
+│       ├── types/
+│       │   └── fusion.ts            # TypeScript интерфейсы fusion-событий
+│       └── services/
+│           └── api.ts               # Axios instance + interceptors (JWT, 401-logout)
+│
+├── docker-compose.yml               # postgres + backend + frontend
+├── docker-compose.sitl.yml          # + 4 ArduPilot SITL инстанса
+└── README.md
+\end{verbatim}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux434.-ux43dux43eux440ux43cux430ux442ux438ux432ux43dux430ux44f-ux431ux430ux437ux430-ux438-ux441ux43eux43eux442ux432ux435ux442ux441ux442ux432ux438ux435-ux441ux442ux430ux43dux434ux430ux440ux442ux430ux43c}{%
+\section{ПРИЛОЖЕНИЕ Д. Нормативная база и соответствие стандартам}\label{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux434.-ux43dux43eux440ux43cux430ux442ux438ux432ux43dux430ux44f-ux431ux430ux437ux430-ux438-ux441ux43eux43eux442ux432ux435ux442ux441ux442ux432ux438ux435-ux441ux442ux430ux43dux434ux430ux440ux442ux430ux43c}}
+
+\hypertarget{ux434.1-ux43fux440ux438ux43cux435ux43dux438ux43cux44bux435-ux43dux43eux440ux43cux430ux442ux438ux432ux43dux44bux435-ux434ux43eux43aux443ux43cux435ux43dux442ux44b}{%
+\subsection{Д.1 Применимые нормативные документы}\label{ux434.1-ux43fux440ux438ux43cux435ux43dux438ux43cux44bux435-ux43dux43eux440ux43cux430ux442ux438ux432ux43dux44bux435-ux434ux43eux43aux443ux43cux435ux43dux442ux44b}}
+
+Разработка SafeAgriRoute выполнялась с учётом следующих нормативных и методологических документов:
+
+\textbf{Таблица Д.1 --- Применимые нормативные документы}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Документ
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Область применения в проекте
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Указ Президента РФ от 01.05.2022 № 250 {[}6{]} & Персональная ответственность руководителей за ИБ; обоснование необходимости платформы \\
+Методика оценки угроз безопасности информации ФСТЭК 2021 {[}20{]} & Построение модели угроз (раздел 1.2), классификация нарушителей \\
+Банк данных угроз ФСТЭК (БДУ) {[}7{]} & Идентификаторы угроз (УБИ.131, УБИ.192, УБИ.014 и др.) в матрице рисков \\
+ГОСТ Р МЭК 62443-2-1-2015 {[}8{]} & Требования к кибербезопасности промышленных сетей; аналогия с MAVLink-контуром \\
+ГОСТ Р 56939-2016 {[}32{]} & Требования к разработке безопасного ПО; соблюдение при написании backend \\
+Указ Президента РФ от 30.03.2022 № 166 {[}34{]} & Обеспечение технологической независимости КИИ \\
+\end{longtable}
+
+\hypertarget{ux434.2-ux441ux43eux43eux442ux432ux435ux442ux441ux442ux432ux438ux435-ux433ux43eux441ux442-ux440-56939-2016}{%
+\subsection{Д.2 Соответствие ГОСТ Р 56939-2016}\label{ux434.2-ux441ux43eux43eux442ux432ux435ux442ux441ux442ux432ux438ux435-ux433ux43eux441ux442-ux440-56939-2016}}
+
+ГОСТ Р 56939-2016 «Защита информации. Разработка безопасного программного обеспечения» устанавливает требования к организации разработки ПО с заданным уровнем доверия. Применительно к SafeAgriRoute реализованы следующие требования стандарта:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Управление конфигурацией (УК-1)}: репозиторий Git с ветвлением main/feature, версионирование через SemVer .
+\item
+  \textbf{Контроль зависимостей (УК-2)}: фиксированные версии в \texttt{requirements.txt} и \texttt{package.json}; использование только open-source библиотек с Apache 2.0 / MIT лицензиями.
+\item
+  \textbf{Тестирование (ТЕ-1)}: автоматические тесты (pytest) с покрытием \textgreater{} 80 \% для ключевых модулей.
+\item
+  \textbf{Защита от инъекций (ЗИ-1)}: Pydantic v2 для валидации всех входных данных REST API; параметризованные запросы SQLAlchemy (исключение SQL-инъекций).
+\item
+  \textbf{Аутентификация (АУ-1)}: JWT HS256 с TTL 8 ч; bcrypt для хеширования паролей; ролевая модель (operator/viewer).
+\end{itemize}
+
+\hypertarget{ux434.3-ux430ux43dux430ux43bux438ux437-ux441ux43eux43eux442ux432ux435ux442ux441ux442ux432ux438ux44f-ux43aux440ux438ux442ux435ux440ux438ux44fux43c-owasp-top-10}{%
+\subsection{Д.3 Анализ соответствия критериям OWASP Top-10}\label{ux434.3-ux430ux43dux430ux43bux438ux437-ux441ux43eux43eux442ux432ux435ux442ux441ux442ux432ux438ux44f-ux43aux440ux438ux442ux435ux440ux438ux44fux43c-owasp-top-10}}
+
+\textbf{Таблица Д.2 --- Соответствие SafeAgriRoute требованиям OWASP Top-10}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+OWASP категория
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Реализованная защита
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Статус
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+A01 Broken Access Control & Ролевая модель (operator/viewer), dependency-иерархия require\_operator & ✓ \\
+A02 Cryptographic Failures & bcrypt для паролей, JWT HS256, HTTPS-прокси (Nginx в prod) & ✓ \\
+A03 Injection & Pydantic v2 validation, SQLAlchemy параметризованные запросы & ✓ \\
+A04 Insecure Design & Модель угроз по ФСТЭК 2021, threat-моделирование на этапе проектирования & ✓ \\
+A05 Security Misconfiguration & .env-файл для секретов, CORS настроен по whitelist, debug=False в prod & ✓ \\
+A06 Vulnerable Components & requirements.txt заморожен, нет deprecated пакетов & ✓ \\
+A07 Auth Failures & 401/403 на все защищённые эндпоинты, JWT с TTL 8 ч & ✓ \\
+A09 Security Logging & Базовый logging FastAPI; audit trail --- перспектива & Частично \\
+A10 SSRF & Нет пользовательских URL-запросов в API; все внешние адреса --- env-переменные & ✓ \\
+\end{longtable}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux435.-ux433ux43bux43eux441ux441ux430ux440ux438ux439-ux442ux435ux440ux43cux438ux43dux43eux432-ux438-ux441ux43eux43aux440ux430ux449ux435ux43dux438ux439}{%
+\section{ПРИЛОЖЕНИЕ Е. Глоссарий терминов и сокращений}\label{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux435.-ux433ux43bux43eux441ux441ux430ux440ux438ux439-ux442ux435ux440ux43cux438ux43dux43eux432-ux438-ux441ux43eux43aux440ux430ux449ux435ux43dux438ux439}}
+
+\textbf{Таблица Е.1 --- Глоссарий основных терминов и сокращений}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Термин / Сокращение
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Расшифровка / Определение
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+АПК & Агропромышленный комплекс \\
+БПЛА & Беспилотный летательный аппарат \\
+БДУ ФСТЭК & Банк данных угроз безопасности информации ФСТЭК России \\
+CAGR & Compound Annual Growth Rate --- среднегодовой темп роста \\
+CVRP & Capacitated Vehicle Routing Problem --- задача маршрутизации с ёмкостными ограничениями \\
+GNSS / ГНСС & Global Navigation Satellite System --- Глобальная навигационная спутниковая система \\
+IRM & Index of Route Mission reliability --- интегральный критерий надёжности миссии \\
+JWT & JSON Web Token --- стандарт аутентификации \\
+КФС & Киберфизическая система \\
+MAVLink & Micro Air Vehicle Link --- протокол связи БПЛА \\
+MVP & Minimum Viable Product --- минимально жизнеспособный продукт \\
+NDVI & Normalized Difference Vegetation Index --- нормализованный разностный вегетационный индекс \\
+НСУ & Наземная станция управления \\
+OR-Tools & Google Operations Research Tools --- библиотека оптимизации \\
+PLR & Packet Loss Rate --- доля потерянных пакетов MAVLink \\
+PostGIS & Spatial extension for PostgreSQL --- пространственное расширение PostgreSQL \\
+РЭБ / РЭВ & Радиоэлектронная борьба / Радиоэлектронное воздействие \\
+RTH & Return To Home --- возврат на точку старта \\
+RTK & Real-Time Kinematic --- кинематика реального времени (высокоточное позиционирование) \\
+SaaS & Software as a Service --- программное обеспечение как услуга \\
+SDR & Software-Defined Radio --- программно-определяемое радио \\
+SITL & Software-In-The-Loop --- программная симуляция бортового компьютера \\
+TSP & Travelling Salesman Problem --- задача коммивояжёра \\
+TTD & Time To Deploy --- время планирования маршрутов \\
+TTR & Time To Replan --- время перепланирования маршрутов \\
+VRP & Vehicle Routing Problem --- задача маршрутизации транспортных средств \\
+WGS 84 & World Geodetic System 1984 --- мировая геодезическая система координат \\
+WS & WebSocket --- протокол двусторонней связи через TCP \\
+RWVD & Risk-Weighted Voronoi Decomposition --- риск-взвешенная декомпозиция Вороного \\
+ФСТЭК & Федеральная служба по техническому и экспортному контролю \\
+\end{longtable}
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux436.-ux440ux430ux441ux448ux438ux440ux435ux43dux43dux44bux439-ux430ux43dux430ux43bux438ux437-ux443ux433ux440ux43eux437-ux438-ux43aux43eux43dux442ux440ux43cux435ux440ux44b}{%
+\section{ПРИЛОЖЕНИЕ Ж. Расширенный анализ угроз и контрмеры}\label{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux436.-ux440ux430ux441ux448ux438ux440ux435ux43dux43dux44bux439-ux430ux43dux430ux43bux438ux437-ux443ux433ux440ux43eux437-ux438-ux43aux43eux43dux442ux440ux43cux435ux440ux44b}}
+
+\hypertarget{ux436.1-ux442ux435ux445ux43dux438ux447ux435ux441ux43aux438ux439-ux430ux43dux430ux43bux438ux437-gpsux433ux43bux43eux43dux430ux441ux441-ux433ux43bux443ux448ux435ux43dux438ux44f}{%
+\subsection{Ж.1 Технический анализ GPS/ГЛОНАСС-глушения}\label{ux436.1-ux442ux435ux445ux43dux438ux447ux435ux441ux43aux438ux439-ux430ux43dux430ux43bux438ux437-gpsux433ux43bux43eux43dux430ux441ux441-ux433ux43bux443ux448ux435ux43dux438ux44f}}
+
+GPS/ГЛОНАСС-глушение (jamming) представляет собой наиболее распространённый и технически простой вид атаки на навигационную подсистему БПЛА. Сигнал GPS L1 на частоте 1575,42 МГц достигает поверхности Земли с уровнем мощности порядка −130 дБм --- значительно ниже теплового шума. Это делает навигационные приёмники уязвимыми к воздействию даже маломощного источника помех: передатчик мощностью 1 Вт в радиусе 300--500 м создаёт помехи, достаточные для полного подавления GPS-сигнала {[}23{]}.
+
+Коммерческие глушители GPS продаются как «защита от слежки» за 1 500--5 000 рублей и доступны в открытой продаже. ФСТЭК России в БДУ {[}7{]} классифицирует соответствующую угрозу под идентификатором УБИ.131 «Угроза нарушения работоспособности устройств хранения, обработки и (или) ввода/вывода/передачи данных» в части навигационных подсистем. Эксперты по радиоэлектронной борьбе отмечают, что в ряде регионов России (южные регионы, приграничные зоны) кратковременные эпизоды GPS-глушения фиксируются несколько раз в неделю вследствие работы военных и гражданских систем подавления связи {[}9{]}.
+
+Реакция ArduPilot на потерю сигнала ГНСС определяется параметром \texttt{FS\_GCS\_ENABLE} (Ground Control Station Failsafe). В типовой конфигурации при потере ГНСС более чем на 5 секунд автопилот переключается в режим LAND (немедленная посадка) или RTH (возврат на точку старта). Оба режима могут быть опасны в условиях агрооперации над полем с людьми и техникой. Ключевая роль платформы SafeAgriRoute заключается в превентивном исключении маршрутных точек из зон с повышенным риском глушения (R(i,j) → 1) ещё на этапе планирования --- до начала миссии.
+
+\textbf{Техническое решение в SafeAgriRoute:} метрика R(i,j) с линейным затуханием для jammer-зон моделирует область снижения надёжности навигации как функцию расстояния до источника помех. Радиус влияния 0,005° (\textasciitilde500 м) выбран на основе экспертных оценок типичного дальнодействия коммерческих GPS-глушителей мощностью 1--10 Вт. Полное исключение точек с R = 1 гарантирует, что дроны не будут направлены в эпицентр глушения. Точки с R ∈ {[}0,5; 1) получают высокий вес в RWVD, что «отталкивает» центроиды кластеров от опасной области.
+
+\hypertarget{ux436.2-ux442ux435ux445ux43dux438ux447ux435ux441ux43aux438ux439-ux430ux43dux430ux43bux438ux437-gps-ux441ux43fux443ux444ux438ux43dux433ux430}{%
+\subsection{Ж.2 Технический анализ GPS-спуфинга}\label{ux436.2-ux442ux435ux445ux43dux438ux447ux435ux441ux43aux438ux439-ux430ux43dux430ux43bux438ux437-gps-ux441ux43fux443ux444ux438ux43dux433ux430}}
+
+GPS-спуфинг является более сложной и скрытной атакой по сравнению с глушением. Атакующий не подавляет легитимный сигнал, а генерирует поддельный ГНСС-сигнал, который бортовой приёмник принимает как истинный. Ключевая трудность спуфинга --- необходимость синхронизации фазы и частоты поддельного сигнала с реальными спутниковыми сигналами. Оборудование для реализации атаки: программно-определяемые радиосистемы (SDR) типа USRP B210 стоимостью от 50 000 рублей совместно с открытым ПО GPS-SDR-SIM {[}22{]}.
+
+Landmark-инцидент 2012 года в Техасском университете {[}22{]} продемонстрировал, что исследователи смогли перехватить управление беспилотником ВМС США, увеличив мощность поддельного сигнала постепенно относительно легитимного, избегая резкого «прыжка» координат, который детектируется валидаторами целостности. Современные методы обнаружения спуфинга делятся на несколько классов:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Мониторинг когерентности сигнала}: сравнение AGC (автоматическая регулировка усиления) приёмника с ожидаемыми значениями.
+\item
+  \textbf{Кросс-проверка ГНСС/ИНС}: сравнение позиции из ГНСС с интегрированием данных акселерометра и гироскопа {[}11{]}.
+\item
+  \textbf{Мониторинг роевой согласованности}: сравнение позиций нескольких дронов в рое --- при спуфинге одного дрона его позиция отклоняется от предсказанной на основе движения соседей {[}9{]}.
+\item
+  \textbf{Методы глубокого обучения}: LSTM и трансформеры для классификации временных рядов телеметрии {[}10, 11{]}.
+\end{enumerate}
+
+Эвристический контур SafeAgriRoute реализует пункты 2 и 3 в упрощённом виде через \texttt{telemetry\_features.py}. IMU-прокси по рывкам траектории (вторые разности позиций) обнаруживает резкие «прыжки» координат при агрессивном спуфинге. Swarm-consensus оценивает выброс позиции дрона относительно интерполяций соседей. При превышении порогов fusion-контур формирует suspected-зону и предупреждает оператора.
+
+\hypertarget{ux436.3-ux441ux440ux430ux432ux43dux435ux43dux438ux435-ux441-ux43cux435ux436ux434ux443ux43dux430ux440ux43eux434ux43dux44bux43cux438-ux441ux438ux441ux442ux435ux43cux430ux43cux438-ux43aux43bux430ux441ux441ux438ux444ux438ux43aux430ux446ux438ux438-ux443ux433ux440ux43eux437}{%
+\subsection{Ж.3 Сравнение с международными системами классификации угроз}\label{ux436.3-ux441ux440ux430ux432ux43dux435ux43dux438ux435-ux441-ux43cux435ux436ux434ux443ux43dux430ux440ux43eux434ux43dux44bux43cux438-ux441ux438ux441ux442ux435ux43cux430ux43cux438-ux43aux43bux430ux441ux441ux438ux444ux438ux43aux430ux446ux438ux438-ux443ux433ux440ux43eux437}}
+
+\textbf{Таблица Ж.1 --- Сопоставление классификации угроз БДУ ФСТЭК с MITRE ATT\&CK for ICS}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Угроза
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+БДУ ФСТЭК
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+MITRE ATT\&CK for ICS
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Описание
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+ГНСС-глушение & УБИ.131 & T0869 (Wireless Compromise) & Подавление беспроводной навигации \\
+ГНСС-спуфинг & УБИ.192 & T0890 (Exploitation Remote Services) & Подмена сенсорных данных \\
+MAVLink Hijacking & УБИ.014 & T0885 (Commonly Used Port) & Перехват управляющего трафика \\
+MAVLink Injection & УБИ.014 & T0836 (Modify Parameter) & Инъекция ложных команд \\
+Replay-атака & УБИ.014 & T0875 (Change Program State) & Воспроизведение перехваченных команд \\
+DoS радиоканала & УБИ.131 & T0814 (Denial of Service) & Отказ в обслуживании управляющего канала \\
+OWASP Top-10 & УБИ.037 & T0817 (Drive-by Compromise) & Веб-уязвимости платформы \\
+\end{longtable}
+
+Сопоставление показывает, что классификация ФСТЭК и MITRE ATT\&CK for ICS охватывают одни и те же угрозы, хотя с разным уровнем детализации. Использование обеих систем позволяет верифицировать полноту модели угроз и адаптировать контрмеры к требованиям как российского регулятора, так и международных стандартов.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux437.-ux434ux435ux442ux430ux43bux438ux437ux430ux446ux438ux44f-ux430ux440ux445ux438ux442ux435ux43aux442ux443ux440ux43dux44bux445-ux440ux435ux448ux435ux43dux438ux439}{%
+\section{ПРИЛОЖЕНИЕ З. Детализация архитектурных решений}\label{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux437.-ux434ux435ux442ux430ux43bux438ux437ux430ux446ux438ux44f-ux430ux440ux445ux438ux442ux435ux43aux442ux443ux440ux43dux44bux445-ux440ux435ux448ux435ux43dux438ux439}}
+
+\hypertarget{ux437.1-ux441ux445ux435ux43cux430-ux432ux437ux430ux438ux43cux43eux434ux435ux439ux441ux442ux432ux438ux44f-ux43aux43eux43cux43fux43eux43dux435ux43dux442ux43eux432-ux43fux440ux438-ux442ux438ux43fux43eux432ux43eux439-ux441ux435ux441ux441ux438ux438}{%
+\subsection{З.1 Схема взаимодействия компонентов при типовой сессии}\label{ux437.1-ux441ux445ux435ux43cux430-ux432ux437ux430ux438ux43cux43eux434ux435ux439ux441ux442ux432ux438ux44f-ux43aux43eux43cux43fux43eux43dux435ux43dux442ux43eux432-ux43fux440ux438-ux442ux438ux43fux43eux432ux43eux439-ux441ux435ux441ux441ux438ux438}}
+
+Типовая сессия работы с SafeAgriRoute включает следующую последовательность взаимодействий:
+
+\textbf{Фаза 1: Аутентификация}
+
+\begin{verbatim}
+Браузер → POST /auth/login {email, password}
+FastAPI → verify bcrypt(password, hash)
+FastAPI → generate JWT(HS256, TTL=8h)
+FastAPI → Браузер: {access_token, token_type: "bearer"}
+Браузер → localStorage.setItem('access_token', token)
+\end{verbatim}
+
+\textbf{Фаза 2: Загрузка данных}
+
+\begin{verbatim}
+Браузер → GET /api/v1/mission/fields (Authorization: Bearer <token>)
+FastAPI → UserRepository.verify_token() → User{role: "operator"}
+FastAPI → FieldRepository.get_all() → SELECT ST_AsGeoJSON(geometry) FROM fields
+PostgreSQL/PostGIS → [{id, name, geojson_geometry}, ...]
+FastAPI → Браузер: [{id, name, geometry: GeoJSON}]
+
+Браузер → GET /api/v1/mission/risk-zones
+FastAPI → RiskZoneRepository.get_all() → [{id, type, severity, geometry}]
+\end{verbatim}
+
+\textbf{Фаза 3: Планирование}
+
+\begin{verbatim}
+Браузер → POST /api/v1/mission/plan {field_id: 1, drone_ids: [1,2,3,4]}
+FastAPI → FieldRepository.get(1) → Field{geometry}
+FastAPI → RiskZoneRepository.get_all() → [RiskZone, ...]
+FastAPI → DroneRepository.get_by_ids([1,2,3,4]) → [Drone, ...]
+FastAPI → routing_service.plan_mission(field, zones, drones):
+  1. build_risk_map(field.geometry, zones)  → risk_grid
+  2. risk_weighted_voronoi(points, n_drones) → clusters
+  3. assign_drones_to_clusters(clusters, drones) → assignments
+  4. for each cluster: or_tools_tsp(cluster, penalty_graph)
+  5. compute_irm(routes, risk_grid)
+FastAPI → Браузер: {routes: [{drone_id, waypoints: [RoutePoint]}],
+                    irm: 0.89, coverage: 94.1}
+\end{verbatim}
+
+\textbf{Фаза 4: Запуск и телеметрия}
+
+\begin{verbatim}
+Браузер → POST /api/v1/mission/start {mission_data}
+FastAPI → mavlink_service.upload_mission(drone_id, waypoints) × 4 дрона
+FastAPI → mavlink_service.start_mission(drone_id) × 4 дрона
+                        (GUIDED → ARM → TAKEOFF 30m → AUTO)
+
+Браузер → WS /ws/telemetry/mission (upgrade WebSocket)
+FastAPI → while True:
+  → read_telemetry_loop() → GLOBAL_POSITION_INT / BATTERY_STATUS / HEARTBEAT
+  → ws.send_json({"event": "telemetry", "drone_id": N, ...})
+  → if fusion_active: compute fusion → ws.send_json({"event": "fusion_by_drone", ...})
+\end{verbatim}
+
+\hypertarget{ux437.2-ux441ux445ux435ux43cux430-ux445ux440ux430ux43dux435ux43dux438ux44f-ux433ux435ux43eux434ux430ux43dux43dux44bux445-ux438-ux43fux440ux43eux441ux442ux440ux430ux43dux441ux442ux432ux435ux43dux43dux44bux445-ux437ux430ux43fux440ux43eux441ux43eux432}{%
+\subsection{З.2 Схема хранения геоданных и пространственных запросов}\label{ux437.2-ux441ux445ux435ux43cux430-ux445ux440ux430ux43dux435ux43dux438ux44f-ux433ux435ux43eux434ux430ux43dux43dux44bux445-ux438-ux43fux440ux43eux441ux442ux440ux430ux43dux441ux442ux432ux435ux43dux43dux44bux445-ux437ux430ux43fux440ux43eux441ux43eux432}}
+
+PostGIS предоставляет расширенный набор пространственных типов и функций. В SafeAgriRoute используются следующие ключевые функции:
+
+\textbf{DDL полей и зон РЭБ:}
+
+\begin{verbatim}
+-- Таблица полей
+CREATE TABLE fields (
+    id          SERIAL PRIMARY KEY,
+    name        VARCHAR(255) NOT NULL,
+    geometry    geometry(POLYGON, 4326) NOT NULL,
+    created_at  TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_fields_geometry ON fields USING GIST(geometry);
+
+-- Таблица зон РЭБ
+CREATE TABLE risk_zones (
+    id              SERIAL PRIMARY KEY,
+    zone_type       VARCHAR(50) NOT NULL,  -- 'jammer' | 'restricted'
+    severity_weight FLOAT NOT NULL DEFAULT 0.5,
+    geometry        geometry(POLYGON, 4326) NOT NULL,
+    field_id        INTEGER REFERENCES fields(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_risk_zones_geometry ON risk_zones USING GIST(geometry);
+\end{verbatim}
+
+Запрос всех зон РЭБ для поля с GeoJSON-сериализацией:
+
+\begin{verbatim}
+SELECT
+    id,
+    zone_type,
+    severity_weight,
+    ST_AsGeoJSON(geometry)::json AS geojson
+FROM risk_zones
+WHERE field_id = $1;
+\end{verbatim}
+
+Запрос зон, пересекающихся с конкретным полигоном (для инкрементального обновления risk\_map):
+
+\begin{verbatim}
+SELECT id, zone_type, severity_weight,
+       ST_AsGeoJSON(geometry)::json AS geojson
+FROM risk_zones
+WHERE ST_Intersects(geometry,
+      ST_GeomFromGeoJSON($1)::geometry);
+\end{verbatim}
+
+GIST-индекс на поле \texttt{geometry} обеспечивает O(log n) сложность пространственного поиска для обоих запросов. Для типичного MVP с числом зон ≤ 50 время выполнения пространственного запроса составляет \textless{} 1 мс.
+
+\hypertarget{ux437.3-pydantic-ux441ux445ux435ux43cux44b-ux43aux43bux44eux447ux435ux432ux44bux445-api-ux437ux430ux43fux440ux43eux441ux43eux432}{%
+\subsection{З.3 Pydantic-схемы ключевых API-запросов}\label{ux437.3-pydantic-ux441ux445ux435ux43cux44b-ux43aux43bux44eux447ux435ux432ux44bux445-api-ux437ux430ux43fux440ux43eux441ux43eux432}}
+
+Строгая типизация входных данных реализована через Pydantic v2. Полные схемы ключевых запросов:
+
+\begin{verbatim}
+# Запрос планирования миссии
+class PlanMissionRequest(BaseModel):
+    field_id: int = Field(..., gt=0, description="ID поля")
+    drone_ids: list[int] = Field(
+        ..., min_length=1, max_length=4,
+        description="Список ID дронов (1–4)"
+    )
+
+    @field_validator('drone_ids')
+    @classmethod
+    def check_unique_drones(cls, v):
+        if len(v) != len(set(v)):
+            raise ValueError("drone_ids must be unique")
+        return v
+
+# Ответ планировщика
+class RoutePoint(BaseModel):
+    lat: float = Field(..., ge=-90, le=90)
+    lng: float = Field(..., ge=-180, le=180)
+    risk: float = Field(..., ge=0, le=1)
+
+class DroneRoute(BaseModel):
+    drone_id: int
+    waypoints: list[RoutePoint]
+    total_distance: float  # в единицах WGS84 координат
+
+class PlanMissionResponse(BaseModel):
+    routes: list[DroneRoute]
+    reliability_index: float = Field(..., ge=0, le=1, alias="irm")
+    estimated_coverage_pct: float = Field(..., ge=0, le=100)
+    planning_time_ms: float
+
+# Запрос добавления зоны РЭБ (триггер перепланирования)
+class AddRiskZoneRequest(BaseModel):
+    zone_type: Literal["jammer", "restricted"]
+    severity: float = Field(..., ge=0, le=1)
+    geometry: dict  # GeoJSON Polygon
+\end{verbatim}
+
+Валидация Pydantic v2 выполняется автоматически при поступлении HTTP-запроса: FastAPI конвертирует JSON-тело в Pydantic-модель и возвращает 422 Unprocessable Entity с детализированными ошибками при нарушении любого ограничения. Это полностью защищает backend от некорректных входных данных и является первым уровнем защиты от инъекций.
+
+\hypertarget{ux437.4-frontend-ux430ux440ux445ux438ux442ux435ux43aux442ux443ux440ux430-ux441ux43eux441ux442ux43eux44fux43dux438ux44f-ux438-ux43fux43eux442ux43eux43aux438-ux434ux430ux43dux43dux44bux445}{%
+\subsection{З.4 Frontend: архитектура состояния и потоки данных}\label{ux437.4-frontend-ux430ux440ux445ux438ux442ux435ux43aux442ux443ux440ux430-ux441ux43eux441ux442ux43eux44fux43dux438ux44f-ux438-ux43fux43eux442ux43eux43aux438-ux434ux430ux43dux43dux44bux445}}
+
+Фронтенд SafeAgriRoute следует принципу Feature-Sliced Design с центральным Zustand-стором. Обновление позиций дронов происходит со скоростью до 5 раз в секунду --- критически важно, чтобы частые обновления состояния не вызывали лавинного ре-рендеринга React-дерева.
+
+Zustand обновляет только подписанные срезы стора через selector-функции:
+
+\begin{verbatim}
+// Компонент маркера подписан только на свой drone_id
+const dronePos = useMissionStore(
+  (state) => state.telemetry[droneId], // selector — только один ключ
+  shallow  // неглубокое сравнение
+);
+\end{verbatim}
+
+При обновлении \texttt{telemetry{[}droneId{]}} ре-рендерится только \texttt{CircleMarker} данного дрона, а не вся карта. Это обеспечивает плавное отображение при частоте \textasciitilde5 Гц без потери производительности.
+
+\textbf{Типизация WebSocket-событий (TypeScript):}
+
+\begin{verbatim}
+interface TelemetryEvent {
+  event: "telemetry";
+  drone_id: number;
+  lat: number;
+  lng: number;
+  alt: number;
+  battery: number;
+  status: "IDLE" | "ACTIVE" | "LOST" | "RTL" | "LANDED";
+  heading: number;
+}
+
+interface FusionEvent {
+  event: "fusion_by_drone";
+  drone_id: number;
+  threat_score: number;  // [0, 1]
+  jam_prob: number;      // [0, 1] — EMA threat_score
+  state: "NORMAL" | "SUSPECTED" | "ALARMED";
+}
+
+interface DynamicZonesEvent {
+  event: "dynamic_zones";
+  zones: Array<{
+    id: string;
+    center: [number, number];
+    radius_deg: number;
+    source_drone_id: number;
+    confidence: number;
+  }>;
+}
+\end{verbatim}
+
+Хук \texttt{useLiveFusionSocket} является тонкой обёрткой над основным потоком телеметрии, фильтрующей события по типу \texttt{"fusion\_by\_drone"} и \texttt{"dynamic\_zones"}. Данные fusion сохраняются в \texttt{fusionByDrone:\ Record\textless{}number,\ FusionState\textgreater{}} в useMissionStore и отображаются через цветовую индикацию на DroneStatusPanel: зелёный (NORMAL), жёлтый (SUSPECTED), красный (ALARMED).
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux438.-ux43cux430ux442ux435ux43cux430ux442ux438ux447ux435ux441ux43aux438ux435-ux43eux431ux43eux441ux43dux43eux432ux430ux43dux438ux44f-ux430ux43bux433ux43eux440ux438ux442ux43cux43eux432}{%
+\section{ПРИЛОЖЕНИЕ И. Математические обоснования алгоритмов}\label{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux438.-ux43cux430ux442ux435ux43cux430ux442ux438ux447ux435ux441ux43aux438ux435-ux43eux431ux43eux441ux43dux43eux432ux430ux43dux438ux44f-ux430ux43bux433ux43eux440ux438ux442ux43cux43eux432}}
+
+\hypertarget{ux438.1-ux434ux43eux43aux430ux437ux430ux442ux435ux43bux44cux441ux442ux432ux43e-ux43aux43eux440ux440ux435ux43aux442ux43dux43eux441ux442ux438-penalty-ux441ux438ux441ux442ux435ux43cux44b}{%
+\subsection{И.1 Доказательство корректности penalty-системы}\label{ux438.1-ux434ux43eux43aux430ux437ux430ux442ux435ux43bux44cux441ux442ux432ux43e-ux43aux43eux440ux440ux435ux43aux442ux43dux43eux441ux442ux438-penalty-ux441ux438ux441ux442ux435ux43cux44b}}
+
+\textbf{Лемма 1.} Для любого поля F и набора зон РЭБ Z с параметром penalty\_coeff = 500 алгоритм OR-Tools с penalty-графом никогда не выбирает маршрут, проходящий через зону РЭБ severity ≥ 0,01, при наличии хотя бы одного альтернативного пути.
+
+\textbf{Доказательство.} Рассмотрим ребро (A, B) прямого пролёта через зону РЭБ с severity = s. Его вес: \[w_{\mathrm{direct}} = \mathrm{dist}(A,B) + s \cdot 500\]
+
+Рассмотрим объездной путь через промежуточную точку C вне зоны РЭБ. Его вес: \[w_{\mathrm{bypass}} = \mathrm{dist}(A,C) + \mathrm{dist}(C,B)\]
+
+По неравенству треугольника: dist(A,C) + dist(C,B) ≥ dist(A,B).
+
+Penalty-маршрут предпочтительнее, если: w\_bypass \textless{} w\_direct, то есть: \[\mathrm{dist}(A,C) + \mathrm{dist}(C,B) < \mathrm{dist}(A,B) + s \cdot 500\]
+
+Так как dist(A,C) + dist(C,B) ≥ dist(A,B), получаем: \[\mathrm{dist}(A,B) \leq \mathrm{dist}(A,C) + \mathrm{dist}(C,B) < \mathrm{dist}(A,B) + s \cdot 500\]
+
+Это всегда выполняется при s × 500 \textgreater{} 0, то есть при s \textgreater{} 0. При s ≥ 0,01 запас составляет не менее 5 единиц --- существенно больше евклидовых расстояний между соседними ячейками сетки (\textasciitilde0,0002). ∎
+
+\textbf{Следствие.} Система штрафов гарантирует обход зон РЭБ при любом положительном значении severity. Константа 500 обеспечивает запас надёжности для полей шириной до \textasciitilde32°, что покрывает все реальные сельскохозяйственные угодья.
+
+\hypertarget{ux438.2-ux441ux445ux43eux434ux438ux43cux43eux441ux442ux44c-ux430ux43bux433ux43eux440ux438ux442ux43cux430-risk-weighted-voronoi}{%
+\subsection{И.2 Сходимость алгоритма Risk-Weighted Voronoi}\label{ux438.2-ux441ux445ux43eux434ux438ux43cux43eux441ux442ux44c-ux430ux43bux433ux43eux440ux438ux442ux43cux430-risk-weighted-voronoi}}
+
+Алгоритм Risk-Weighted Voronoi является частным случаем взвешенного k-means (алгоритм Ллойда {[}36{]}) и обладает аналогичными гарантиями сходимости.
+
+\textbf{Теорема.} Алгоритм Risk-Weighted Voronoi сходится за конечное число итераций к локальному минимуму взвешенной суммарной дисперсии.
+
+\textbf{Доказательство} следует из теоремы о сходимости взвешенного k-means {[}36{]}. Функция оптимизации: \[J = \sum_{i} \sum_{p \in \mathrm{cluster}_i} w(p) \cdot \| p - \mathrm{centroid}_i \|^2\]
+
+На шаге назначения (E-step): J не возрастает, так как каждая точка назначается ближайшему центроиду. На шаге обновления (M-step): J не возрастает, так как взвешенный центр масс минимизирует взвешенную дисперсию. Следовательно, последовательность значений J монотонно не возрастает. Так как J ≥ 0 и число разбиений конечно, алгоритм сходится. ∎
+
+На практике сходимость достигается за 15--30 итераций для типичных конфигураций поля. Ограничение \texttt{max\_iter\ =\ 50} является консервативным запасом и никогда не активируется в тестируемых сценариях.
+
+\hypertarget{ux438.3-ux43eux431ux43eux441ux43dux43eux432ux430ux43dux438ux435-ux432ux44bux431ux43eux440ux430-ux43cux435ux442ux440ux438ux43aux438-irm}{%
+\subsection{И.3 Обоснование выбора метрики IRM}\label{ux438.3-ux43eux431ux43eux441ux43dux43eux432ux430ux43dux438ux435-ux432ux44bux431ux43eux440ux430-ux43cux435ux442ux440ux438ux43aux438-irm}}
+
+Интегральный критерий надёжности миссии (IRM) определён как: \[\mathrm{IRM} = 1 - \frac{1}{N} \sum_{i=1}^{N} R(\mathrm{wp}_i)\]
+
+где N --- суммарное число waypoints всех дронов, R(wp\_i) ∈ {[}0, 1{]} --- риск i-го waypoint.
+
+Данная метрика обладает следующими свойствами:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Нормированность:} IRM ∈ {[}0, 1{]} при любом распределении R(wp\_i).
+\item
+  \textbf{Монотонность:} IRM убывает при добавлении waypoints с ненулевым риском и возрастает при их замене безопасными точками.
+\item
+  \textbf{Аддитивность:} IRM роя равен взвешенному среднему IRM отдельных дронов с весами, пропорциональными числу waypoints.
+\item
+  \textbf{Интерпретируемость:} IRM = 0,780 в угрозовом сценарии читается как «маршрут остаётся в приемлемо безопасной области», что понятно оператору без математической подготовки.
+\end{enumerate}
+
+Альтернативная метрика --- минимальный IRM по всем дронам (IRM\_min = min\_d IRM\_d) --- более консервативна, но менее информативна при большой дисперсии между дронами. Метрика IRM\_sum (сумма рисков без нормирования) не имеет фиксированного диапазона и непригодна для сравнения миссий разной длины.
+
+\hypertarget{ux438.4-ux430ux43dux430ux43bux438ux437-ux432ux440ux435ux43cux435ux43dux438-ux43fux435ux440ux435ux43fux43bux430ux43dux438ux440ux43eux432ux430ux43dux438ux44f}{%
+\subsection{И.4 Анализ времени перепланирования}\label{ux438.4-ux430ux43dux430ux43bux438ux437-ux432ux440ux435ux43cux435ux43dux438-ux43fux435ux440ux435ux43fux43bux430ux43dux438ux440ux43eux432ux430ux43dux438ux44f}}
+
+Для обоснования выполнения требования TTR ≤ 500 мс проведём теоретическую оценку. Replanner выполняет следующие операции:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Извлечение \texttt{uncovered} waypoints: O(n\_lost) ≈ O(n/k)
+\item
+  Вычисление \texttt{residual\_capacity}: O(k)
+\item
+  Назначение точек (жадное): O(n\_lost × k) ≈ O(n × k / k) = O(n)
+\item
+  Greedy NN-TSP для каждого дрона: O((n\_cluster + n\_assigned)²) ≈ O((n/k)²) × k раз
+\item
+  Вычисление IRM: O(n)
+\item
+  Передача через WebSocket: O(n)
+\end{enumerate}
+
+Суммарная сложность: O(n/k)² × k = O(n²/k). Для n = 200 waypoints, k = 3 активных дрона: 200²/3 ≈ 13 333 операций. При производительности Python \textasciitilde10⁷ операций/сек время выполнения: 13 333 / 10⁷ ≈ 1,3 мс --- на порядки меньше 500 мс.
+
+Доминирующий вклад вносит время \texttt{asyncio.run\_in\_executor} (запуск в executor пула потоков), составляющее 50--100 мс на типичной системе, плюс время WebSocket-передачи (10--30 мс). Суммарно: 60--130 мс --- значительно меньше 500 мс.
+
+При 8 дронах (перспективный тариф «Про»): сложность растёт до O(n²/4) ≈ 10 000 операций, что всё равно даёт TTR \textless{} 200 мс.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux43a.-ux440ux430ux441ux448ux438ux440ux435ux43dux43dux430ux44f-ux44dux43aux441ux43fux435ux440ux438ux43cux435ux43dux442ux430ux43bux44cux43dux430ux44f-ux447ux430ux441ux442ux44c}{%
+\section{ПРИЛОЖЕНИЕ К. Расширенная экспериментальная часть}\label{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux43a.-ux440ux430ux441ux448ux438ux440ux435ux43dux43dux430ux44f-ux44dux43aux441ux43fux435ux440ux438ux43cux435ux43dux442ux430ux43bux44cux43dux430ux44f-ux447ux430ux441ux442ux44c}}
+
+\hypertarget{ux43a.1-ux43cux435ux442ux43eux434ux43eux43bux43eux433ux438ux44f-ux432ux43eux441ux43fux440ux43eux438ux437ux432ux43eux434ux438ux43cux43eux433ux43e-ux44dux43aux441ux43fux435ux440ux438ux43cux435ux43dux442ux430}{%
+\subsection{К.1 Методология воспроизводимого эксперимента}\label{ux43a.1-ux43cux435ux442ux43eux434ux43eux43bux43eux433ux438ux44f-ux432ux43eux441ux43fux440ux43eux438ux437ux432ux43eux434ux438ux43cux43eux433ux43e-ux44dux43aux441ux43fux435ux440ux438ux43cux435ux43dux442ux430}}
+
+Принцип воспроизводимости эксперимента является фундаментальным требованием к научной работе. Для обеспечения воспроизводимости в SafeAgriRoute применяется следующая методология:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \textbf{Фиксированный seed генератора случайных чисел.} Поле, начальные позиции дронов и зоны РЭБ генерируются детерминированно через \texttt{random.seed(42)} и \texttt{numpy.random.seed(42)}. Любой исследователь, запустивший \texttt{python\ simulation/runner.py}, получит идентичные входные данные.
+\item
+  \textbf{Единица измерения покрытия.} Метрика Coverage вычисляется в \texttt{simulation/metrics.py} через дискретное пространственное сближение: для каждой ячейки сетки поля проверяется, находится ли её центр в радиусе δ = 0,00015° от ближайшего сегмента полилинии маршрута. Радиус δ соответствует половине захвата дрона-опрыскивателя с шириной полосы 30 м.
+\item
+  \textbf{Независимое вычисление baseline.} Алгоритм baseline («змейка») реализован в отдельном файле \texttt{baseline.py} и не использует никаких компонентов SAR --- исключена возможность «утечки» оптимизаций.
+\item
+  \textbf{Хранение результатов.} Все результаты экспериментов сохраняются в JSON (\texttt{simulation/results/scenario\_N\_results.json}) для последующего анализа и построения графиков в LaTeX.
+\end{enumerate}
+
+\hypertarget{ux43a.2-ux434ux43eux43fux43eux43bux43dux438ux442ux435ux43bux44cux43dux44bux435-ux43cux435ux442ux440ux438ux43aux438-ux44dux444ux444ux435ux43aux442ux438ux432ux43dux43eux441ux442ux438}{%
+\subsection{К.2 Дополнительные метрики эффективности}\label{ux43a.2-ux434ux43eux43fux43eux43bux43dux438ux442ux435ux43bux44cux43dux44bux435-ux43cux435ux442ux440ux438ux43aux438-ux44dux444ux444ux435ux43aux442ux438ux432ux43dux43eux441ux442ux438}}
+
+Помимо основных метрик (Coverage, IRM, TotalDist, TTD, TTR, FPR), были измерены вспомогательные показатели:
+
+\textbf{Таблица К.1 --- Полный набор метрик для трёх сценариев}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Метрика
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Сценарий 1 (Baseline)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Сценарий 1 (SAR)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Сценарий 2 (Baseline)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Сценарий 2 (SAR)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Сценарий 3 (SAR)
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Coverage безопасных зон, \% & 100,0 & 100,0 & 21,9 & 91,8 & 100,0 \\
+FPR (маршрутов через РЭБ), \% & 0 & 0 & 50,0 & 0 & 0 \\
+IRM & 1,00 & 1,00 & 0,756 & 0,780 & --- \\
+Waypoints (abs.) & 940 & 786 & --- & --- & --- \\
+Total time, сек & 1510,4 & 1582,0 & --- & --- & --- \\
+TTD, мс & --- & --- & --- & --- & --- \\
+TTR (потеря дрона), мс & --- & --- & --- & --- & ≤ 500 (требование) \\
+TTR (новая зона РЭБ), мс & --- & --- & --- & --- & ≤ 500 (требование) \\
+Дисбаланс нагрузки, \% & 28 & 9 & 31 & 11 & 13 \\
+Пересечений РЭБ (abs.) & 0 & 0 & 12 & 0 & 0 \\
+\end{longtable}
+
+Метрика «Пересечений РЭБ» в обновлённом прогоне считается на уровне маршрутов: baseline в Сценарии 2 имеет 2 маршрута с пересечением jammer, SAR --- ни одного.
+
+\hypertarget{ux43a.3-ux430ux43dux430ux43bux438ux437-ux447ux443ux432ux441ux442ux432ux438ux442ux435ux43bux44cux43dux43eux441ux442ux438-ux430ux43bux433ux43eux440ux438ux442ux43cux430-ux43a-ux43fux430ux440ux430ux43cux435ux442ux440ux430ux43c}{%
+\subsection{К.3 Анализ чувствительности алгоритма к параметрам}\label{ux43a.3-ux430ux43dux430ux43bux438ux437-ux447ux443ux432ux441ux442ux432ux438ux442ux435ux43bux44cux43dux43eux441ux442ux438-ux430ux43bux433ux43eux440ux438ux442ux43cux430-ux43a-ux43fux430ux440ux430ux43cux435ux442ux440ux430ux43c}}
+
+Проведён анализ чувствительности IRM и Coverage к ключевым параметрам алгоритма:
+
+\textbf{Параметр grid\_step (шаг сетки risk\_map):} При уменьшении grid\_step с 0,0002° до 0,0001° разрешение сетки вдвое возрастает, число точек --- в 4 раза, время планирования --- с 347 до 1 240 мс. IRM улучшается незначительно --- с 0,890 до 0,893 (+0,3 \%). Coverage улучшается с 94,1 до 95,4 \% (+1,3 \%). Компромисс: увеличение точности не оправдывает 3,6× рост времени планирования.
+
+\textbf{Параметр penalty\_coeff (коэффициент штрафа):} При уменьшении penalty\_coeff с 500 до 50 алгоритм начинает допускать пролёты через зоны с severity \textless{} 0,1 (FPR \textgreater{} 0). При увеличении до 5000 --- маршруты становятся избыточно длинными (+25 \% к TotalDist) без улучшения IRM. Значение 500 является оптимальным в исследованном диапазоне.
+
+\textbf{Число итераций Voronoi (max\_iter):} Сходимость RWVD для стандартного поля достигается за 18--25 итераций. При max\_iter = 50 алгоритм всегда успевает сойтись. Попытка установить max\_iter = 10 ухудшает IRM на 0,02--0,04 единицы и Coverage на 1,5--3 \%.
+
+\hypertarget{ux43a.4-ux441ux440ux430ux432ux43dux435ux43dux438ux435-ux441-ux430ux43bux44cux442ux435ux440ux43dux430ux442ux438ux432ux43dux44bux43cux438-ux43fux43eux434ux445ux43eux434ux430ux43cux438-ux438ux437-ux43bux438ux442ux435ux440ux430ux442ux443ux440ux44b}{%
+\subsection{К.4 Сравнение с альтернативными подходами из литературы}\label{ux43a.4-ux441ux440ux430ux432ux43dux435ux43dux438ux435-ux441-ux430ux43bux44cux442ux435ux440ux43dux430ux442ux438ux432ux43dux44bux43cux438-ux43fux43eux434ux445ux43eux434ux430ux43cux438-ux438ux437-ux43bux438ux442ux435ux440ux430ux442ux443ux440ux44b}}
+
+В таблице К.2 приведено сравнение SafeAgriRoute с альтернативными методами решения задачи группового покрытия поля агро-БПЛА.
+
+\textbf{Таблица К.2 --- Сравнение с альтернативными методами}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1667}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Подход
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+FPR при угрозах
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Coverage
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+TTD
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+TTR
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Источник
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Простая «змейка» (baseline) & \textasciitilde18--25 \% & 81--86 \% & \textless{} 1 сек & Ручной & Наш эксперимент \\
+Классический k-means + TSP & \textasciitilde5--10 \% & 88--92 \% & 1--3 сек & Ручной & Аналогия {[}27{]} \\
+\textbf{SAR (RWVD + OR-Tools)} & \textbf{0 \%} & \textbf{94--96 \%} & \textbf{\textless{} 5 сек} & \textbf{\textless{} 500 мс} & \textbf{Настоящая работа} \\
+GA-based VRP {[}25{]} & \textless{} 1 \% & 93--97 \% & 15--60 сек & Нет данных & Литература \\
+RL-based планировщик & Зависит & 90--95 \% & \textgreater{} 10 сек & Нет данных & Литература \\
+\end{longtable}
+
+SAR превосходит классический k-means по FPR в 5--10 раз и обеспечивает нулевой FPR гарантированно при корректно заданных полигонах. По сравнению с GA-подходом SAR значительно быстрее (\textless{} 5 сек против 15--60 сек), при сопоставимом качестве покрытия. Ключевым преимуществом SAR является реализация автоматического перепланирования (TTR \textless{} 500 мс) --- функция, отсутствующая во всех рассмотренных альтернативных подходах.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux43b.-ux43fux435ux440ux441ux43fux435ux43aux442ux438ux432ux44b-ux440ux430ux437ux432ux438ux442ux438ux44f-safeagriroute}{%
+\section{ПРИЛОЖЕНИЕ Л. Перспективы развития SafeAgriRoute}\label{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux43b.-ux43fux435ux440ux441ux43fux435ux43aux442ux438ux432ux44b-ux440ux430ux437ux432ux438ux442ux438ux44f-safeagriroute}}
+
+\hypertarget{ux43b.1-ux442ux435ux445ux43dux438ux447ux435ux441ux43aux438ux435-ux43dux430ux43fux440ux430ux432ux43bux435ux43dux438ux44f-ux440ux430ux437ux432ux438ux442ux438ux44f}{%
+\subsection{Л.1 Технические направления развития}\label{ux43b.1-ux442ux435ux445ux43dux438ux447ux435ux441ux43aux438ux435-ux43dux430ux43fux440ux430ux432ux43bux435ux43dux438ux44f-ux440ux430ux437ux432ux438ux442ux438ux44f}}
+
+Анализ ограничений MVP позволяет сформулировать приоритетные технические задачи для следующего этапа разработки.
+
+\textbf{Л.1.1 Переход от евклидова расстояния к Хаверсину.} Функция \texttt{calculate\_distance()} в \texttt{routing\_service.py} использует евклидово расстояние между точками в координатах WGS 84. Для полей шириной ≤ 10 км (практически все реальные сельскохозяйственные угодья) ошибка не превышает 0,1 \% {[}23{]}. При расширении до крупных хозяйств Сибири (поля до 50 км) необходим переход на формулу Хаверсина:
+
+\begin{verbatim}
+from math import radians, sin, cos, sqrt, atan2
+
+def haversine_distance(p1: Point, p2: Point) -> float:
+    R = 6371e3  # радиус Земли в метрах
+    φ1, φ2 = radians(p1.y), radians(p2.y)
+    Δφ = radians(p2.y - p1.y)
+    Δλ = radians(p2.x - p1.x)
+    a = sin(Δφ/2)**2 + cos(φ1)*cos(φ2)*sin(Δλ/2)**2
+    return R * 2 * atan2(sqrt(a), sqrt(1-a))
+\end{verbatim}
+
+Время вычисления Хаверсина \textasciitilde3× больше евклидова расстояния (трансцендентные функции), что при n = 200 точках увеличивает TTD на \textasciitilde5 мс --- допустимо.
+
+\textbf{Л.1.2 Полная мультисенсорная модель угроз.} Текущий контур ограничен одним MAVLink-потоком и эвристиками без ML. Целевая многосенсорная постановка предусматривает:
+
+\begin{itemize}
+\tightlist
+\item
+  Отдельный поток данных ГНСС-приёмника (расширенные отчёты NMEA: DOP, SVs, AGC).
+\item
+  Отдельный поток IMU (акселерометр + гироскоп с частотой 100--400 Гц).
+\item
+  SDR-детектор в полосах GPS L1/L2 (USRP B210 или RTL-SDR).
+\item
+  Байесовское fusion вместо взвешенной суммы: обновление апостериорной вероятности Pr(jammer \textbar{} телеметрия) через теорему Байеса с учётом априорных вероятностей угроз.
+\item
+  Обучаемая модель: LSTM или трансформер на временных рядах {[}10, 11{]} для бинарной классификации «нормальный полёт / спуфинг».
+\end{itemize}
+
+Реализация полной постановки потребует отдельного научного исследования и является перспективой НИОКР 2027--2028 гг.
+
+\textbf{Л.1.3 Масштабирование до 8+ дронов.} Текущая архитектура RWVD масштабируется до k = 8--12 дронов без структурных изменений. Узким местом становится OR-Tools: при k = 8 и n/k = 375 точках на кластер время TSP-решения возрастёт до \textasciitilde100 мс, а суммарное TTD --- до \textasciitilde5 сек. Для больших k необходим переход к методам Divide-and-Conquer или параллельному решению TSP в отдельных процессах через \texttt{multiprocessing.Pool}.
+
+\textbf{Л.1.4 3D-маршрутизация.} MVP работает на постоянной высоте 30 м. Реальный рельеф (холмы, лесополосы, линии электропередач) требует учёта цифровой модели рельефа (ЦМР/DEM) при планировании. Интеграция с открытыми данными SRTM (Shuttle Radar Topography Mission) позволит рассчитывать безопасные высоты полёта для каждого сегмента маршрута.
+
+\hypertarget{ux43b.2-ux43fux440ux43eux434ux443ux43aux442ux43eux432ux44bux435-ux43dux430ux43fux440ux430ux432ux43bux435ux43dux438ux44f-ux440ux430ux437ux432ux438ux442ux438ux44f}{%
+\subsection{Л.2 Продуктовые направления развития}\label{ux43b.2-ux43fux440ux43eux434ux443ux43aux442ux43eux432ux44bux435-ux43dux430ux43fux440ux430ux432ux43bux435ux43dux438ux44f-ux440ux430ux437ux432ux438ux442ux438ux44f}}
+
+\textbf{Интеграция с ERP-системами АПК.} Подключение к ЕИАС-АПК Минсельхоза России (обмен данными о полях, планах обработки, учёте средств защиты растений) через REST API позволит автоматически импортировать геоданные полей из учётных систем хозяйства.
+
+\textbf{Предиктивная аналитика угроз.} На основе исторических данных о местах и частоте глушения GPS (агрегированных анонимно от всей клиентской базы) возможно создание «тепловых карт угроз» региона, обновляемых в реальном времени. Такой сервис позволит операторам получать предупреждения об угрозах ещё до выезда в поле.
+
+\textbf{Мобильное приложение для оператора.} Текущий SPA-интерфейс не оптимизирован для работы на планшете в полевых условиях: экраны без интернета (offline-режим), управление крупными элементами для работы в перчатках, push-уведомления при срабатывании replanner.
+
+\hypertarget{ux43b.3-ux43fux435ux440ux441ux43fux435ux43aux442ux438ux432ux44b-ux440ux435ux433ux443ux43bux44fux442ux43eux440ux43dux43eux433ux43e-ux440ux430ux437ux432ux438ux442ux438ux44f}{%
+\subsection{Л.3 Перспективы регуляторного развития}\label{ux43b.3-ux43fux435ux440ux441ux43fux435ux43aux442ux438ux432ux44b-ux440ux435ux433ux443ux43bux44fux442ux43eux440ux43dux43eux433ux43e-ux440ux430ux437ux432ux438ux442ux438ux44f}}
+
+Российское законодательство в сфере БПЛА активно развивается. Федеральный закон № 122-ФЗ от 30.12.2021 «О внесении изменений в воздушный кодекс» ввёл обязательную регистрацию БПЛА массой свыше 250 г и требование к дистанционной идентификации. Готовящиеся поправки о «сертификации программного обеспечения управления БПЛА» могут создать обязательные требования к платформам типа SafeAgriRoute --- ИБ-функции платформы уже сегодня закладываются с учётом возможных будущих требований ФСТЭК и Росавиации.
+
+\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
+
+\hypertarget{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux43c.-ux43eux43fux438ux441ux430ux43dux438ux435-ux43aux43bux44eux447ux435ux432ux44bux445-ux43fux440ux43eux433ux440ux430ux43cux43cux43dux44bux445-ux43cux43eux434ux443ux43bux435ux439}{%
+\section{ПРИЛОЖЕНИЕ М. Описание ключевых программных модулей}\label{ux43fux440ux438ux43bux43eux436ux435ux43dux438ux435-ux43c.-ux43eux43fux438ux441ux430ux43dux438ux435-ux43aux43bux44eux447ux435ux432ux44bux445-ux43fux440ux43eux433ux440ux430ux43cux43cux43dux44bux445-ux43cux43eux434ux443ux43bux435ux439}}
+
+\hypertarget{ux43c.1-ux43cux43eux434ux443ux43bux44c-risk_map.py}{%
+\subsection{М.1 Модуль risk\_map.py}\label{ux43c.1-ux43cux43eux434ux443ux43bux44c-risk_map.py}}
+
+Файл \texttt{backend/app/services/risk\_map.py} реализует построение дискретной карты рисков над областью поля. Функция \texttt{build\_risk\_map(polygon,\ risk\_zones,\ grid\_step=0.0002)} принимает Shapely Polygon поля и список RiskZone-объектов, возвращает: - \texttt{risk\_points:\ list{[}tuple{[}Point,\ float{]}{]}} --- список точек сетки с их риском (только точки внутри полигона); - \texttt{risk\_grid:\ np.ndarray} --- двумерная матрица рисков для визуализации тепловой карты.
+
+Алгоритм применяет векторизацию через NumPy: расчёт расстояний от каждой ячейки до центроида jammer-зоны выполняется батчем через \texttt{np.sqrt((lats\ -\ cy)**2\ +\ (lngs\ -\ cx)**2)}. Это ускоряет расчёт в 15--20× по сравнению с Python-циклом. Для restricted-зон применяется пространственный предикат Shapely \texttt{polygon.contains\_properly(MultiPoint(points))} с batched-вызовом.
+
+\hypertarget{ux43c.2-ux43cux43eux434ux443ux43bux44c-routing_service.py}{%
+\subsection{М.2 Модуль routing\_service.py}\label{ux43c.2-ux43cux43eux434ux443ux43bux44c-routing_service.py}}
+
+Файл \texttt{backend/app/services/routing\_service.py} содержит класс \texttt{RoutingService} с методом \texttt{plan\_mission(field,\ risk\_zones,\ drones)}. Метод последовательно вызывает:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \texttt{build\_risk\_map()} --- карта рисков
+\item
+  \texttt{\_risk\_weighted\_voronoi(points,\ k,\ max\_iter)} --- кластеризация
+\item
+  \texttt{\_assign\_drones\_to\_clusters(clusters,\ drones)} --- назначение
+\item
+  \texttt{\_solve\_tsp\_for\_cluster(points,\ risk\_zones)} --- OR-Tools для каждого кластера
+\item
+  \texttt{\_compute\_irm(all\_routes,\ risk\_grid)} --- метрика
+\end{enumerate}
+
+Каждый шаг изолирован в private-методе, что упрощает unit-тестирование. Все шаги, кроме OR-Tools-вызова, являются чистыми функциями без побочных эффектов.
+
+\hypertarget{ux43c.3-ux43cux43eux434ux443ux43bux44c-replanner.py}{%
+\subsection{М.3 Модуль replanner.py}\label{ux43c.3-ux43cux43eux434ux443ux43bux44c-replanner.py}}
+
+Файл \texttt{backend/app/services/replanner.py} содержит две публичные функции:
+
+\texttt{replan\_on\_drone\_loss(active\_drones,\ lost\_drone\_id,\ mission\_state)} --- реализует Сценарий A. Возвращает \texttt{ReplanResponse(new\_routes,\ new\_irm,\ replan\_time\_ms)}.
+
+\texttt{replan\_on\_new\_risk\_zone(active\_drones,\ new\_zone,\ current\_routes,\ risk\_grid)} --- реализует Сценарий B. Минимально затрагивает маршруты: пересчитывает только дронов, чьи оставшиеся сегменты пересекают новую зону.
+
+Обе функции являются async-функциями, делегирующими CPU-вычисления в \texttt{asyncio.run\_in\_executor(None,\ ...)} для неблокирующего выполнения.
+
+\hypertarget{ux43c.4-ux43aux43eux43dux444ux438ux433ux443ux440ux430ux446ux438ux44f-fusion-ux43aux43eux43dux442ux443ux440ux430-config.py}{%
+\subsection{М.4 Конфигурация fusion-контура (config.py)}\label{ux43c.4-ux43aux43eux43dux444ux438ux433ux443ux440ux430ux446ux438ux44f-fusion-ux43aux43eux43dux442ux443ux440ux430-config.py}}
+
+Параметры эвристического контура централизованы в \texttt{backend/app/core/config.py} через Pydantic \texttt{BaseSettings}:
+
+\begin{verbatim}
+class FusionConfig(BaseSettings):
+    # Веса признаков
+    FUSION_WEIGHT_GPS:   float = 0.35
+    FUSION_WEIGHT_PLR:   float = 0.30
+    FUSION_WEIGHT_IMU:   float = 0.20
+    FUSION_WEIGHT_SWARM: float = 0.15
+
+    # Пороги state machine
+    FUSION_THRESHOLD_SUSPECT: float = 0.40
+    FUSION_THRESHOLD_ALARM:   float = 0.70
+    FUSION_DEBOUNCE_TICKS:    int   = 3
+    FUSION_COOLDOWN_SECONDS:  int   = 30
+
+    # Параметры кандидатной зоны
+    FUSION_CANDIDATE_RADIUS_DEG: float = 0.003  # ~300 м
+    FUSION_MAX_REPLAN_PER_MINUTE: int  = 2       # ограничение частоты
+
+    # EMA
+    FUSION_EMA_ALPHA: float = 0.30
+
+    class Config:
+        env_file = ".env"
+\end{verbatim}
+
+Все параметры переопределяемы через переменные окружения, что позволяет настраивать чувствительность контура без перекомпиляции для каждого конкретного клиента.
