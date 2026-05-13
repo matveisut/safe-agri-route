@@ -9,16 +9,28 @@ Markdown-дубли основного текста и задания удале
 
 ## LaTeX
 
-- `latex/diploma.tex` — полный LaTeX-документ: титульник, задание, основная часть, приложения.
-- `latex/diploma_main_part.tex` — только основная часть: титульник, задание, содержание, основной текст без приложений.
-- `latex/diploma_body.tex` — основной текст без приложений.
-- `latex/appendices.tex` — приложения, вынесенные отдельно.
-- `latex/zadanie_vkrs.tex` — задание на ВКР в LaTeX.
+В папке `latex/` оставлены только три самостоятельных файла:
+
+- `latex/formal.tex` — формальные части: титульный лист, задание, реферат.
+- `latex/main.tex` — содержание и основной текст диплома без формальных частей и приложений; источники упорядочены по первому появлению в тексте.
+- `latex/appendices.tex` — приложения отдельным документом.
 
 ## Готовые DOCX
 
-- `docx/diploma_main_part.docx` — основная часть: титульник, задание, содержание и основной текст без приложений.
+- `docx/formal_parts.docx` — формальные части отдельным файлом.
+- `docx/diploma_main_part.docx` — содержание и основной текст диплома без формальных частей и приложений.
 - `docx/appendices.docx` — приложения отдельным файлом.
+
+DOCX собираются автоматизированно командой:
+
+```bash
+cd /home/user/projects/safe-agri-route/diplom/core
+python build_docx.py all
+```
+
+Скрипт `build_docx.py` использует LaTeX-файлы как источник, временно заменяет `longtable` на маркеры, запускает Pandoc, затем вставляет настоящие Word-таблицы и нормализует оформление. Это убирает мусор вида `>p(...)`, сохраняет таблицы как DOCX-таблицы и проверяет базовые условия результата после сборки: число таблиц, отсутствие маркеров, отсутствие LaTeX-спецификаций колонок и наличие текста ячеек в DOCX.
+
+Во всех DOCX выставлен Times New Roman 14 pt, межстрочный интервал 1,5 для основного текста, выравнивание по ширине, чёрный цвет текста, без жирного и курсивного начертания.
 
 В основной части рисунки встроены по смыслу в раздел `1.5` и подписаны как `Рисунок 1.2`–`Рисунок 1.5`; `Рисунок 1.1` уже используется для архитектуры платформы.
 
@@ -26,8 +38,9 @@ Markdown-дубли основного текста и задания удале
 
 ```bash
 cd /home/user/projects/safe-agri-route/diplom/core/latex
-latexmk -xelatex -interaction=nonstopmode -halt-on-error diploma.tex
-latexmk -xelatex -interaction=nonstopmode -halt-on-error diploma_main_part.tex
+latexmk -xelatex -interaction=nonstopmode -halt-on-error formal.tex
+latexmk -xelatex -interaction=nonstopmode -halt-on-error main.tex
+latexmk -xelatex -interaction=nonstopmode -halt-on-error appendices.tex
 ```
 
 Временные файлы сборки (`*.aux`, `*.log`, `*.toc`, `*.out`, `*.fls`, `*.fdb_latexmk`, `*.xdv`) можно удалять.

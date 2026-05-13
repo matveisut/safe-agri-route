@@ -1,15 +1,121 @@
+\documentclass[14pt,a4paper]{extarticle}
+
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T2A]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage[russian]{babel}
+  \usepackage{newtxtext}
+\else
+  \usepackage{fontspec}
+  \usepackage{polyglossia}
+  \setmainlanguage{russian}
+  \IfFontExistsTF{Times New Roman}{%
+    \newcommand{\DiplomaFont}{Times New Roman}%
+  }{%
+    \newcommand{\DiplomaFont}{FreeSerif}%
+  }
+  \setmainfont{\DiplomaFont}
+  \setsansfont{\DiplomaFont}
+  \setmonofont{\DiplomaFont}
+  \newfontfamily\cyrillicfont{\DiplomaFont}
+  \newfontfamily\cyrillicfontsf{\DiplomaFont}
+  \newfontfamily\cyrillicfonttt{\DiplomaFont}
+\fi
+
+\usepackage[a4paper,left=30mm,right=10mm,top=20mm,bottom=20mm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{indentfirst}
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0pt}
+
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{calc}
+\usepackage{multirow}
+\usepackage{makecell}
+\usepackage{enumitem}
+\usepackage{amsmath,amssymb}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\setcounter{secnumdepth}{0}
+\setcounter{tocdepth}{3}
+\renewcommand{\contentsname}{СОДЕРЖАНИЕ}
+\sloppy
+\emergencystretch=3em
+\setlist{nosep}
+\renewcommand{\arraystretch}{1.2}
+
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\begin{document}
+
+\begin{titlepage}
+\begin{center}
+Министерство науки и высшего образования Российской Федерации\\
+Федеральное государственное автономное образовательное учреждение\\
+высшего образования\\
+\textbf{«СЕВЕРО-КАВКАЗСКИЙ ФЕДЕРАЛЬНЫЙ УНИВЕРСИТЕТ»}\\[0.3cm]
+Факультет математики и компьютерных наук им. профессора Н.И. Червякова\\
+Кафедра организации и технологии защиты информации
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{flushright}
+\begin{minipage}{0.48\textwidth}
+ДОПУЩЕНА К ЗАЩИТЕ\\[0.2cm]
+Зав. кафедрой ОТЗИ\\
+канд. техн. наук, доцент Петренко В.И.\\[0.2cm]
+\underline{\hspace{5cm}} \hfill (подпись)\\[0.1cm]
+«\underline{\hspace{0.7cm}}» \underline{\hspace{2.5cm}} 2026 г.
+\end{minipage}
+\end{flushright}
+
+\vspace{0.5cm}
+
+\begin{center}
+\textbf{ВЫПУСКНАЯ КВАЛИФИКАЦИОННАЯ РАБОТА СТУДЕНТА}\\[0.3cm]
+\textit{Раздел 1. Проектирование архитектуры и разработка серверной части\\
+платформы планирования безопасных маршрутов БПЛА с модулем оценки киберугроз}\\[0.5cm]
+\textbf{«Разработка платформы автоматизированного планирования безопасных\\
+маршрутов для групп сельскохозяйственных дронов с учётом киберугроз»}
+\end{center}
+
+\vspace{0.5cm}
+
+\begin{tabbing}
+\hspace{7cm} \= \hspace{4cm} \= \kill
+Направление подготовки: \> 10.03.01 «Информационная безопасность» \\[0.4cm]
+Студент: \> Сутормин Матвей Павлович \\[0.1cm]
+Группа: \> ИНБ-б-о-22-1 \\[0.1cm]
+\> \underline{\hspace{4cm}} (подпись) \\[0.4cm]
+Руководитель: \> канд. техн. наук, доцент Петренко В.И. \\[0.1cm]
+\> \underline{\hspace{4cm}} (подпись) \\[0.4cm]
+Нормоконтролёр: \> \underline{\hspace{4cm}} \\[0.1cm]
+\> \underline{\hspace{4cm}} (подпись) \\[0.4cm]
+Рецензент: \> \underline{\hspace{4cm}} \\[0.1cm]
+\> \underline{\hspace{4cm}} (подпись) \\[0.4cm]
+Дата защиты: \> «\underline{\hspace{0.7cm}}» \underline{\hspace{2.5cm}} 2026 г. \\[0.2cm]
+Оценка: \> \underline{\hspace{4cm}} \\
+\end{tabbing}
+
+\vfill
+
+\begin{center}
+Ставрополь, 2026
+\end{center}
+\end{titlepage}
+
+\clearpage
 \hypertarget{ux437ux430ux434ux430ux43dux438ux435-ux43dux430-ux432ux44bux43fux443ux441ux43aux43dux443ux44e-ux43aux432ux430ux43bux438ux444ux438ux43aux430ux446ux438ux43eux43dux43dux443ux44e-ux440ux430ux431ux43eux442ux443-ux441ux442ux430ux440ux442ux430ux43f}{%
 \section{Задание на выпускную квалификационную работу (стартап)}\label{ux437ux430ux434ux430ux43dux438ux435-ux43dux430-ux432ux44bux43fux443ux441ux43aux43dux443ux44e-ux43aux432ux430ux43bux438ux444ux438ux43aux430ux446ux438ux43eux43dux43dux443ux44e-ux440ux430ux431ux43eux442ux443-ux441ux442ux430ux440ux442ux430ux43f}}
-
-\begin{quote}
-Актуализация 22.04.2026: формулировки задания синхронизированы с текущим состоянием кода (выполнены промпты 13--22; validation report + PLR/packet-loss обновления).
-\end{quote}
-
-Формальный текст задания вынесен из \href{roadmap_task.md}{\texttt{roadmap\_task.md}}, чтобы календарный план и официальное задание не смешивались в одном файле.
-
-\textbf{Согласование с ТЗ на ПО:} детали реализации платформы --- в \href{ТЗ.md}{\texttt{ТЗ.md}}. Раздел \textbf{§10} описывает \textbf{целевую} модель динамического определения угрозы по нескольким источникам (GNSS, IMU, радиоканал, согласованность роя и др.) и слияния признаков. В репозитории реализована \textbf{упрощённая} цепочка по MAVLink (эвристики, без ML/SDR) --- см. \href{Промпты.md}{\texttt{Промпты.md}} 9--12; \textbf{полная} постановка §10 \textbf{не входит} в минимальный объём подтверждения задания и может излагаться в перспективах ВКР и в \href{knowledge/}{\texttt{knowledge/}}.
-
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 Министерство науки и высшего образования Российской Федерации Федеральное государственное автономное образовательное учреждение высшего образования «СЕВЕРО-КАВКАЗСКИЙ ФЕДЕРАЛЬНЫЙ УНИВЕРСИТЕТ»
 
@@ -23,7 +129,6 @@
 \textbf{Тема ВКРС:} Разработка платформы автоматизированного планирования безопасных маршрутов для групп сельскохозяйственных дронов с учётом киберугроз\\
 \emph{(Утверждена приказом проректора по учебной работе от «\textbf{\emph{»}}\_\_\_\_\_2026 г. №\_\_\_\_\_\_)}
 
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{ux440ux430ux437ux434ux435ux43b-1.-ux43fux440ux43eux435ux43aux442ux438ux440ux43eux432ux430ux43dux438ux435-ux430ux440ux445ux438ux442ux435ux43aux442ux443ux440ux44b-ux438-ux440ux430ux437ux440ux430ux431ux43eux442ux43aux430-ux441ux435ux440ux432ux435ux440ux43dux43eux439-ux447ux430ux441ux442ux438-ux43fux43bux430ux442ux444ux43eux440ux43cux44b-ux43fux43bux430ux43dux438ux440ux43eux432ux430ux43dux438ux44f-ux431ux435ux437ux43eux43fux430ux441ux43dux44bux445-ux43cux430ux440ux448ux440ux443ux442ux43eux432-ux431ux43fux43bux430-ux441-ux43cux43eux434ux443ux43bux435ux43c-ux43eux446ux435ux43dux43aux438-ux43aux438ux431ux435ux440ux443ux433ux440ux43eux437}{%
 \subsection{РАЗДЕЛ 1. Проектирование архитектуры и разработка серверной части платформы планирования безопасных маршрутов БПЛА с модулем оценки киберугроз}\label{ux440ux430ux437ux434ux435ux43b-1.-ux43fux440ux43eux435ux43aux442ux438ux440ux43eux432ux430ux43dux438ux435-ux430ux440ux445ux438ux442ux435ux43aux442ux443ux440ux44b-ux438-ux440ux430ux437ux440ux430ux431ux43eux442ux43aux430-ux441ux435ux440ux432ux435ux440ux43dux43eux439-ux447ux430ux441ux442ux438-ux43fux43bux430ux442ux444ux43eux440ux43cux44b-ux43fux43bux430ux43dux438ux440ux43eux432ux430ux43dux438ux44f-ux431ux435ux437ux43eux43fux430ux441ux43dux44bux445-ux43cux430ux440ux448ux440ux443ux442ux43eux432-ux431ux43fux43bux430-ux441-ux43cux43eux434ux443ux43bux435ux43c-ux43eux446ux435ux43dux43aux438-ux43aux438ux431ux435ux440ux443ux433ux440ux43eux437}}
@@ -89,7 +194,6 @@
 \textbf{Руководитель первого раздела проекта:} \_\_\_\_\_\_\_\_\_\_\_\_\_\_ Петренко В.И.\\
 \textbf{Задание принял к исполнению:} \_\_\_\_\_\_\_\_\_\_\_\_\_\_ Сутормин М.П.
 
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
 \hypertarget{ux440ux430ux437ux434ux435ux43b-2.-ux440ux430ux437ux440ux430ux431ux43eux442ux43aux430-ux43aux43bux438ux435ux43dux442ux441ux43aux43eux439-ux447ux430ux441ux442ux438-ux43fux43bux430ux442ux444ux43eux440ux43cux44b-ux438-ux43cux43eux434ux443ux43bux44f-ux43eux431ux435ux441ux43fux435ux447ux435ux43dux438ux44f-ux438ux43dux444ux43eux440ux43cux430ux446ux438ux43eux43dux43dux43eux439-ux431ux435ux437ux43eux43fux430ux441ux43dux43eux441ux442ux438-ux432ux437ux430ux438ux43cux43eux434ux435ux439ux441ux442ux432ux438ux44f-ux441-ux433ux440ux443ux43fux43fux43eux439-ux431ux43fux43bux430}{%
 \subsection{РАЗДЕЛ 2. Разработка клиентской части платформы и модуля обеспечения информационной безопасности взаимодействия с группой БПЛА}\label{ux440ux430ux437ux434ux435ux43b-2.-ux440ux430ux437ux440ux430ux431ux43eux442ux43aux430-ux43aux43bux438ux435ux43dux442ux441ux43aux43eux439-ux447ux430ux441ux442ux438-ux43fux43bux430ux442ux444ux43eux440ux43cux44b-ux438-ux43cux43eux434ux443ux43bux44f-ux43eux431ux435ux441ux43fux435ux447ux435ux43dux438ux44f-ux438ux43dux444ux43eux440ux43cux430ux446ux438ux43eux43dux43dux43eux439-ux431ux435ux437ux43eux43fux430ux441ux43dux43eux441ux442ux438-ux432ux437ux430ux438ux43cux43eux434ux435ux439ux441ux442ux432ux438ux44f-ux441-ux433ux440ux443ux43fux43fux43eux439-ux431ux43fux43bux430}}
@@ -154,6 +258,17 @@
 \textbf{Руководитель второго раздела проекта:} \_\_\_\_\_\_\_\_\_\_\_\_\_\_ Антонов В.В.\\
 \textbf{Задание принял к исполнению:} \_\_\_\_\_\_\_\_\_\_\_\_\_\_ Яковенко В.С.
 
-\begin{center}\rule{0.5\linewidth}{0.5pt}\end{center}
 
-\emph{Текст синхронизирован с \texttt{roadmap\_task.md} (вынесен 19.04.2026). Дополнено ссылкой на \texttt{ТЗ.md} §10 (апрель 2026).}
+\clearpage
+\hypertarget{ux440ux435ux444ux435ux440ux430ux442}{%
+\section{РЕФЕРАТ}\label{ux440ux435ux444ux435ux440ux430ux442}}
+
+Выпускная квалификационная работа студента на тему «Разработка платформы автоматизированного планирования безопасных маршрутов для групп сельскохозяйственных дронов с учётом киберугроз» выполнена по направлению подготовки 10.03.01 «Информационная безопасность».
+
+\textbf{Объём раздела 1:} 65 страниц, 15 таблиц, 6 рисунков (схем), 43 источника (из них 19 на иностранном языке), 9 приложений.
+
+\textbf{Ключевые слова:} БЕСПИЛОТНЫЙ ЛЕТАТЕЛЬНЫЙ АППАРАТ, АГРОДРОН, GPS-ГЛУШЕНИЕ, GPS-СПУФИНГ, MAVLINK, МАРШРУТИЗАЦИЯ, CVRP, OR-TOOLS, VORONOI, КАРТА РИСКОВ, ПЕРЕПЛАНИРОВАНИЕ, FASTAPI, POSTGIS, ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ.
+
+В работе проведён анализ мирового и российского рынка агро-БПЛА; выполнен конкурентный анализ платформ управления дронами; построена детализированная модель угроз информационной безопасности с привязкой к реестру БДУ ФСТЭК России; формализована метрика оценки деструктивного воздействия R(x,y) и интегральный критерий надёжности миссии (IRM). Спроектирована и реализована в виде MVP трёхуровневая архитектура SaaS-платформы SafeAgriRoute. Разработан алгоритм Risk-Weighted Voronoi Decomposition и CVRP-планировщик на Google OR-Tools с системой штрафов за пролёт через зоны РЭБ. Реализован алгоритм динамического перепланирования миссии (≤ 500 мс). Проведены сравнительные эксперименты трёх сценариев относительно базовой стратегии «змейка».
+
+\end{document}
